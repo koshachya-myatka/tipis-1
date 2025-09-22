@@ -1,9 +1,14 @@
 # pip install numpy scipy matplotlib
 
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import random
+import os
+import io
+import base64
 
 class Calculator:
     def __init__(self):
@@ -174,22 +179,25 @@ class Calculator:
     # отрисовка графика изменений Х1-Х18 по времени
     def plot_time_series(self):
         if self.solution is None:
-            self.solve_system()
-        
-        plt.figure(figsize=(12, 8))
-        
+            self.solve_system()        
+        fig = plt.figure(figsize=(12, 8))        
         for i in range(18):
-            plt.plot(self.solution.t, self.solution.y[i], label=f'X{i+1}', linewidth=2)
-        
+            plt.plot(self.solution.t, self.solution.y[i], label=f'X{i+1}', linewidth=2)        
         plt.xlabel('Время', fontsize=12)
         plt.ylabel('Значение параметра', fontsize=12)
         plt.title('Изменение параметров X1-X18 по времени', fontsize=14)
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.grid(True, alpha=0.3)
         plt.ylim(0, 1.1)  # Ограничиваем ось Y от 0 до 1
-        
         plt.tight_layout()
-        plt.show()
+
+        # сохраняем в буфер
+        time_series_buffer = io.BytesIO()
+        plt.savefig(time_series_buffer, format='png', dpi=100, bbox_inches='tight')
+        time_series_buffer.seek(0)
+        time_series_b64 = base64.b64encode(time_series_buffer.getvalue()).decode()
+        plt.close(fig)
+        return time_series_b64
     
     # отрисовка 5 лепестковых диаграмм
     def plot_radar_charts(self):
@@ -225,9 +233,16 @@ class Calculator:
             fig.delaxes(axes[i])
         plt.suptitle('Лепестковые диаграммы параметров X1-X18', fontsize=14)
         plt.tight_layout()
-        plt.show()
+        radar_buffer = io.BytesIO()
+        plt.savefig(radar_buffer, format='png', dpi=100, bbox_inches='tight')
+        radar_buffer.seek(0)
+        radar_b64 = base64.b64encode(radar_buffer.getvalue()).decode()
+        plt.close(fig)
+        return radar_b64
     
     # построение всех графиков
     def plot_all_results(self):
-        self.plot_time_series()
-        self.plot_radar_charts()
+        self.solve_system()
+        time_series_b64 = self.plot_time_series()
+        radar_b64 = self.plot_radar_charts()
+        return [time_series_b64, radar_b64]

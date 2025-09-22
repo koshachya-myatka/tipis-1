@@ -112,6 +112,44 @@ button:hover {
     white-space: nowrap;
 }
 
+.diagrams-container {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.diagram {
+    margin: 20px 0;
+    max-width: 100%;
+}
+
+.diagram img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#messages {
+    text-align: center;
+}
+
+.error-message {
+    color: #e74c3c;
+    background-color: #fadbd8;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.success-message {
+    color: #27ae60;
+    background-color: #d5f4e6;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
 @media (max-width: 1000px) {
     .tables-container {
         flex-direction: column;

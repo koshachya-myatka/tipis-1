@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robotic Complexes</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+
+<body>
+    <h1>Робототехнические комплексы</h1>
+    <div id="messages"></div>
+    <div class="tables-container">
+        <!-- Таблица параметров X1-X18 -->
+        <div class="table-wrapper">
+            <h3 class="table-title">Параметры системы</h3>
+            <div class="scrollable-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Параметр</th>
+                            <th>Описание</th>
+                            <th>Начальное</th>
+                            <th>Минимальное</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(1, 19) %}
+                        <tr>
+                            <td>X{{ i }}</td>
+                            <td>
+                                {% if i == 1 %}Количество забракованных балок на 100 единиц продукции
+                                {% elif i == 2 %}Численность операторов РТК
+                                {% elif i == 3 %}Среднее количество остановок РТК на один цикл
+                                {% elif i == 4 %}Средняя длина дефектных сварных швов на 1 единицу продукции
+                                {% elif i == 5 %}Выполненные работы по плановому обслуживанию РТК
+                                {% elif i == 6 %}Численность программистов
+                                {% elif i == 7 %}Численность наладчиков сварочного оборудования
+                                {% elif i == 8 %}Численность контролеров ОТК
+                                {% elif i == 9 %}Численность цеховых технологов
+                                {% elif i == 10 %}Количество дней просрочки поставки материалов и запчастей для ремонта
+                                РТК
+                                {% elif i == 11 %}Среднее отклонение напряжения сварочной дуги
+                                {% elif i == 12 %}Среднее отклонение тока на двигателе подающего блока
+                                {% elif i == 13 %}Среднее отклонение манипулятора от программной траектории
+                                {% elif i == 14 %}Наличие на рабочих местах необходимой технологической документации
+                                {% elif i == 15 %}Отклонение давления защитного газа
+                                {% elif i == 16 %}Отклонение давления сжатого воздуха
+                                {% elif i == 17 %}План производства на заданный период в единицах продукции
+                                {% elif i == 18 %}Количество балок, сданных ОТК с первого предъявления
+                                {% endif %}
+                            </td>
+                            <td><input type="number" min="0" id="X{{ i }}" placeholder="0.0"
+                                    value="{{ parameters.get('X' ~ i, '') }}"></td>
+                            <td><input type="number" min="0" id="X{{ i }}_min" placeholder="0.0"
+                                    value="{{ parameters.get('X' ~ i ~ '_min', '') }}"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Таблица констант -->
+        <div class="table-wrapper">
+            <h3 class="table-title">Константы системы</h3>
+            <div class="scrollable-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Константа</th>
+                            <th>Описание</th>
+                            <th>Значение</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set constants = [
+                        ('O0', 'O0', 'Численность операторов РТК на начало периода'),
+                        ('Oin', 'Oin', 'Численность принятых операторов РТК за период'),
+                        ('Oout', 'Oout', 'Численность уволенных операторов РТК за период'),
+                        ('Sm', 'Sm', 'Сменность работы производства'),
+                        ('Rw', 'Rw', 'Количество РТК, задействованных в производственном процессе'),
+                        ('Nst', 'Nst', 'Количество остановок РТК за период'),
+                        ('S_star', 'S*', 'Допустимое количество остановок РТК за один сварочный цикл'),
+                        ('Ld', 'Ld', 'Общая длина дефектных швов за период'),
+                        ('L_star', 'L*', 'Расчетная длина дефектных швов за период'),
+                        ('Mf', 'Mf', 'Количество выполненных мероприятий из графика ППР по обслуживанию РТК'),
+                        ('Mp', 'Mp', 'Количество запланированных мероприятий из графика ППР по обслуживанию РТК'),
+                        ('P0', 'P0', 'Численность программистов на начало периода'),
+                        ('Pin', 'Pin', 'Численность принятых программистов за период'),
+                        ('Pout', 'Pout', 'Численность уволенных программистов за период'),
+                        ('R0', 'R0', 'Численность наладчиков сварочного оборудования на начало периода'),
+                        ('Rin', 'Rin', 'Численность принятых наладчиков сварочного оборудования за период'),
+                        ('Rout', 'Rout', 'Численность уволенных наладчиков сварочного оборудования за период'),
+                        ('C0', 'C0', 'Численность контролеров ОТК на начало периода'),
+                        ('Cin', 'Cin', 'Численность принятых контролеров ОТК за период'),
+                        ('Cout', 'Cout', 'Численность уволенных контролеров ОТК за период'),
+                        ('T0', 'T0', 'Численность технологов на начало периода'),
+                        ('Tin', 'Tin', 'Численность принятых технологов за период'),
+                        ('Tout', 'Tout', 'Численность уволенных технологов за период'),
+                        ('Nr', 'Nr', 'Длительность ремонта РТК в днях'),
+                        ('Df', 'Df', 'Фактический срок поставки запчастей и материалов для ремонта РТК'),
+                        ('Dp', 'Dp', 'Запланированный срок поставки запчастей и материалов для ремонта РТК'),
+                        ('DeltaU', 'ΔU', 'Среднее отклонение напряжения сварочной дуги от номинального значения'),
+                        ('Delta_star_U', 'Δ*U', 'Допустимое отклонение напряжения сварочной дуги от номинального
+                        значения'),
+                        ('DeltaI', 'ΔI', 'Среднее отклонение тока на двигателе подающего механизма от номинального
+                        значения'),
+                        ('Delta_star_I', 'Δ*I', 'Допустимое отклонение тока на двигателе подающего механизма от
+                        номинального значения'),
+                        ('DeltaT', 'ΔT', 'Среднее отклонение манипулятора от запрограммированной траектории'),
+                        ('Delta_star_T', 'Δ*T', 'Допустимое манипулятора от запрограммированной траектории'),
+                        ('Tdf', 'Tdf', 'Фактическое количество документов по технологическому процессу'),
+                        ('Tdp', 'Tdp', 'Необходимое количество документов по технологическому процессу'),
+                        ('DeltaPG', 'ΔRG', 'Среднее отклонение давления защитного газа'),
+                        ('Delta_star_PG', 'Δ*PG', 'Допустимое отклонение давления защитного газа'),
+                        ('DeltaPV', 'ΔPV', 'Среднее отклонение давления сжатого воздуха'),
+                        ('Delta_star_PV', 'Δ*PV', 'Допустимое отклонение давления сжатого воздуха'),
+                        ('NTP', 'Ntp', 'Количество балок, собранных в соответствии с технологическим процессом'),
+                        ('Nd', 'Nd', 'Количество балок, сданных с 1-го предъявления'),
+                        ('Ab', 'Ab', 'Количество актов о несоответствующей продукции за период')
+                        ] %}
+
+                        {% for const_name, const_symbol, description in constants %}
+                        <tr>
+                            <td>{{ const_symbol }}</td>
+                            <td>{{ description }}</td>
+                            <td><input type="number" min="1" id="{{ const_name }}" placeholder="1.0"
+                                    value="{{ parameters.get(const_name, '') }}"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Таблица полиномов f1-f36 -->
+        <div class="table-wrapper">
+            <h3 class="table-title">Полиномиальные функции</h3>
+            <div class="scrollable-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Функция</th>
+                            <th>Формула</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(1, 37) %}
+                        <tr>
+                            <td>f{{ i }}</td>
+                            <td class="formula-row">
+                                f{{ i }} = <input type="number" class="formula-input" id="f{{ i }}_a3" placeholder="a3"
+                                    value="{{ parameters.get('f' ~ i ~ '_a3', '') }}"> * x³ +
+                                <input type="number" class="formula-input" id="f{{ i }}_a2" placeholder="a2"
+                                    value="{{ parameters.get('f' ~ i ~ '_a2', '') }}"> * x² +
+                                <input type="number" class="formula-input" id="f{{ i }}_a1" placeholder="a1"
+                                    value="{{ parameters.get('f' ~ i ~ '_a1', '') }}"> * x +
+                                <input type="number" class="formula-input" id="f{{ i }}_a0" placeholder="a0"
+                                    value="{{ parameters.get('f' ~ i ~ '_a0', '') }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="buttons-container">
+        <button id="clearBtn">Очистить значения</button>
+        <button id="randomBtn">Случайные значения</button>
+        <button id="plotBtn">Построить диаграммы</button>
+    </div>
+
+    <div id="diagramsContainer" class="diagrams-container" style="display: none;">
+        <h2>Результаты моделирования</h2>
+        <div class="diagram">
+            <h3>График изменения параметров по времени</h3>
+            <img id="timeSeriesImg" src="" alt="График изменения параметров по времени">
+        </div>
+        <div class="diagram">
+            <h3>Лепестковые диаграммы</h3>
+            <img id="radarChartsImg" src="" alt="Лепестковые диаграммы">
+        </div>
+    </div>
+
+    <script>
+        // Функция для отображения сообщений
+        function showMessage(message, type) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 1500);
+        }
+
+        // Функция для получения всех значений из формы
+        function getFormData() {
+            const inputs = document.querySelectorAll('input');
+            const data = {};
+            inputs.forEach(input => {
+                data[input.id] = input.value;
+            });
+            return data;
+        }
+
+        // Очистка всех значений
+        document.getElementById('clearBtn').addEventListener('click', function () {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.value = '';
+            });
+            document.getElementById('diagramsContainer').style.display = 'none';
+
+            fetch('/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage('Все значения очищены', 'success');
+                    }
+                })
+                .catch(error => {
+                    showMessage('Ошибка при очистке значений', 'error');
+                });
+        });
+
+        // Случайные значения
+        document.getElementById('randomBtn').addEventListener('click', function () {
+            fetch('/random', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        for (const [key, value] of Object.entries(data.parameters)) {
+                            const input = document.getElementById(key);
+                            if (input) {
+                                input.value = value;
+                            }
+                        }
+                        showMessage('Значения заполнены случайными данными', 'success');
+                    }
+                })
+                .catch(error => {
+                    showMessage('Ошибка при генерации случайных значений', 'error');
+                });
+        });
+
+        // Построение диаграмм
+        document.getElementById('plotBtn').addEventListener('click', function () {
+            const formData = getFormData();
+            fetch('/plot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('timeSeriesImg').src = 'data:image/png;base64,' + data.time_series;
+                        document.getElementById('radarChartsImg').src = 'data:image/png;base64,' + data.radar_charts;
+                        document.getElementById('diagramsContainer').style.display = 'block';
+                        showMessage('Диаграммы успешно построены', 'success');
+                    } else {
+                        showMessage(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage('Ошибка при построении диаграмм', 'error');
+                });
+        });
+
+    </script>
+</body>
+
+</html>
