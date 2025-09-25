@@ -198,7 +198,7 @@
                 messageDiv.remove();
             }, 1500);
         }
-
+    
         // Функция для получения всех значений из формы
         function getFormData() {
             const inputs = document.querySelectorAll('input');
@@ -208,15 +208,97 @@
             });
             return data;
         }
-
+    
+        // Функция для проверки значений параметров X1-X18
+        function validateParameterValues() {
+            let isValid = true;
+            
+            for (let i = 1; i <= 18; i++) {
+                const initialInput = document.getElementById(`X${i}`);
+                const minInput = document.getElementById(`X${i}_min`);
+                
+                if (initialInput && minInput && initialInput.value && minInput.value) {
+                    const initialValue = parseFloat(initialInput.value);
+                    const minValue = parseFloat(minInput.value);
+                    
+                    if (initialValue < minValue) {
+                        initialInput.style.borderColor = '#e74c3c';
+                        minInput.style.borderColor = '#e74c3c';
+                        isValid = false;
+                        
+                        // Показываем сообщение только для первой ошибки
+                        if (isValid === false) {
+                            showMessage(`Ошибка: Начальное значение X${i} должно быть больше или равно минимальному`, 'error');
+                        }
+                    } else {
+                        initialInput.style.borderColor = '';
+                        minInput.style.borderColor = '';
+                    }
+                }
+            }
+            
+            return isValid;
+        }
+    
+        // Функция для проверки одного параметра
+        function validateSingleParameter(index) {
+            const initialInput = document.getElementById(`X${index}`);
+            const minInput = document.getElementById(`X${index}_min`);
+            
+            if (initialInput && minInput && initialInput.value && minInput.value) {
+                const initialValue = parseFloat(initialInput.value);
+                const minValue = parseFloat(minInput.value);
+                
+                if (initialValue < minValue) {
+                    initialInput.style.borderColor = '#e74c3c';
+                    minInput.style.borderColor = '#e74c3c';
+                } else {
+                    initialInput.style.borderColor = '';
+                    minInput.style.borderColor = '';
+                }
+            } else {
+                // Сбрасываем цвет, если одно из полей пустое
+                initialInput.style.borderColor = '';
+                minInput.style.borderColor = '';
+            }
+        }
+    
+        // Добавляем обработчики событий для проверки при вводе
+        for (let i = 1; i <= 18; i++) {
+            const initialInput = document.getElementById(`X${i}`);
+            const minInput = document.getElementById(`X${i}_min`);
+            
+            if (initialInput && minInput) {
+                // Проверка при изменении начального значения
+                initialInput.addEventListener('input', function() {
+                    validateSingleParameter(i);
+                });
+                
+                // Проверка при изменении минимального значения
+                minInput.addEventListener('input', function() {
+                    validateSingleParameter(i);
+                });
+                
+                // Проверка при потере фокуса
+                initialInput.addEventListener('blur', function() {
+                    validateSingleParameter(i);
+                });
+                
+                minInput.addEventListener('blur', function() {
+                    validateSingleParameter(i);
+                });
+            }
+        }
+    
         // Очистка всех значений
         document.getElementById('clearBtn').addEventListener('click', function () {
             const inputs = document.querySelectorAll('input');
             inputs.forEach(input => {
                 input.value = '';
+                input.style.borderColor = ''; // Сбрасываем цвет границы
             });
             document.getElementById('diagramsContainer').style.display = 'none';
-
+    
             fetch('/clear', {
                 method: 'POST',
                 headers: {
@@ -233,7 +315,7 @@
                     showMessage('Ошибка при очистке значений', 'error');
                 });
         });
-
+    
         // Случайные значения
         document.getElementById('randomBtn').addEventListener('click', function () {
             fetch('/random', {
@@ -249,6 +331,7 @@
                             const input = document.getElementById(key);
                             if (input) {
                                 input.value = value;
+                                input.style.borderColor = ''; // Сбрасываем цвет границы
                             }
                         }
                         showMessage('Значения заполнены случайными данными', 'success');
@@ -258,9 +341,13 @@
                     showMessage('Ошибка при генерации случайных значений', 'error');
                 });
         });
-
+    
         // Построение диаграмм
         document.getElementById('plotBtn').addEventListener('click', function () {
+            if (!validateParameterValues()) {
+                return; // Прерываем выполнение если есть ошибки
+            }
+            
             const formData = getFormData();
             fetch('/plot', {
                 method: 'POST',
@@ -284,7 +371,6 @@
                     showMessage('Ошибка при построении диаграмм', 'error');
                 });
         });
-
     </script>
 </body>
 
