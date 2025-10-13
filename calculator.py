@@ -12,10 +12,10 @@ import base64
 
 class Calculator:
     def __init__(self):
-        # все параметры системы (словарь)
-        self.parameters = self.generate_system_parameters()
         # временные точки от 0 до 1 с шагом 0.01
         self.time_points = np.linspace(0, 1, 100)
+        # все параметры системы (словарь)
+        self.parameters = self.generate_valid_parameters()
         # переменная для решения системы
         self.solution = None
 
@@ -26,8 +26,12 @@ class Calculator:
         # параметры X1-X18 (от 0.01 до 1.00)
         for i in range(1, 19):
             param_name = f"X{i}"
-            parameters[param_name] = round(random.uniform(0.01, 1.0), 2)
-            parameters[f"{param_name}_min"] = round(random.uniform(0.01, parameters[param_name]), 2)
+            base_value = round(random.uniform(0.01, 1.0), 2)
+            min_value = round(random.uniform(0.01, base_value), 2)
+            max_value = round(random.uniform(base_value, 1.0), 2)
+            parameters[param_name] = base_value
+            parameters[f"{param_name}_min"] = min_value
+            parameters[f"{param_name}_max"] = max_value
         
         # константы системы
         constants = {
@@ -60,6 +64,15 @@ class Calculator:
             parameters[f"f{i}_a0"] = round(random.uniform(0.1, 10.0), 2)
         
         return parameters
+
+    def generate_valid_parameters(self):
+        for _ in range(10):  # максимум 10 попыток
+            params = self.generate_system_parameters()
+            self.parameters = params
+            self.solve_system()
+            if np.all(self.solution.y >= 0):
+                return params
+        raise ValueError("Не удалось сгенерировать физически корректные параметры после 10 попыток")
     
     # вычисление значения полинома f_n(x) = a3*x^3 + a2*x^2 + a1*x + a0
     # в параметрах (значение икса, n-номер для fn)
@@ -179,10 +192,15 @@ class Calculator:
     # отрисовка графика изменений Х1-Х18 по времени
     def plot_time_series(self):
         if self.solution is None:
-            self.solve_system()        
-        fig = plt.figure(figsize=(12, 8))        
+            self.solve_system()
+        fig, ax = plt.subplots(figsize=(12, 8))
+        colors = plt.cm.tab20(np.linspace(0, 1, 18))
         for i in range(18):
-            plt.plot(self.solution.t, self.solution.y[i], label=f'X{i+1}', linewidth=2)        
+            y = self.solution.y[i]
+            ax.plot(self.solution.t, y, label=f'X{i+1}', color=colors[i], linewidth=2)
+            # Подпись в конце линии
+            ax.text(self.solution.t[-1] + 0.01, y[-1], f'X{i+1}', color=colors[i],
+                    fontsize=8, va='center')
         plt.xlabel('Время', fontsize=12)
         plt.ylabel('Значение параметра', fontsize=12)
         plt.title('Изменение параметров X1-X18 по времени', fontsize=14)
@@ -203,7 +221,7 @@ class Calculator:
     def plot_radar_charts(self):
         if self.solution is None:
             self.solve_system()
-        
+
         time_points = [0, 0.25, 0.5, 0.75, 1]
         time_indices = [np.abs(self.solution.t - t).argmin() for t in time_points]
         categories = [f'X{i+1}' for i in range(18)]
@@ -213,6 +231,9 @@ class Calculator:
         fig, axes = plt.subplots(2, 3, figsize=(15, 10), subplot_kw=dict(polar=True))
         axes = axes.flatten()
         colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
+        # красный контур — максимальные пределы
+        max_values = [self.parameters.get(f"X{i+1}_max", 1) for i in range(18)]
+        max_values += max_values[:1]
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
             if i >= len(time_points):
                 break
@@ -222,6 +243,8 @@ class Calculator:
             ax.set_theta_direction(-1)
             ax.plot(angles, values, color=colors[i], linewidth=2, linestyle='solid')
             ax.fill(angles, values, color=colors[i], alpha=0.25)
+            # Добавляем красный контур максимальных пределов
+            ax.plot(angles, max_values, color='red', linewidth=2, linestyle='dashed', label='Максимум')
             ax.set_xticks(angles[:-1])
             ax.set_xticklabels(categories, fontsize=8)
             ax.set_rlabel_position(0)

@@ -22,7 +22,8 @@
                             <th>Параметр</th>
                             <th>Описание</th>
                             <th>Начальное</th>
-                            <th>Минимальное</th>
+                            <th>Минимал.</th>
+                            <th>Максимал.</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -51,10 +52,9 @@
                                 {% elif i == 18 %}Количество балок, сданных ОТК с первого предъявления
                                 {% endif %}
                             </td>
-                            <td><input type="number" min="0" id="X{{ i }}" placeholder="0.0"
-                                    value="{{ parameters.get('X' ~ i, '') }}"></td>
-                            <td><input type="number" min="0" id="X{{ i }}_min" placeholder="0.0"
-                                    value="{{ parameters.get('X' ~ i ~ '_min', '') }}"></td>
+                            <td><input type="number" min="0" id="X{{ i }}" value="{{ parameters.get('X' ~ i, '') }}"></td>
+                            <td><input type="number" min="0" id="X{{ i }}_min" value="{{ parameters.get('X' ~ i ~ '_min', '') }}"></td>
+                            <td><input type="number" min="0" id="X{{ i }}_max" value="{{ parameters.get('X' ~ i ~ '_max', '') }}"></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -137,7 +137,7 @@
 
         <!-- Таблица полиномов f1-f36 -->
         <div class="table-wrapper">
-            <h3 class="table-title">Полиномиальные функции</h3>
+            <h3 class="table-title">Внутренние функции</h3>
             <div class="scrollable-table">
                 <table>
                     <thead>
@@ -188,15 +188,18 @@
 
     <script>
         // Функция для отображения сообщений
-        function showMessage(message, type) {
+        function showMessage(message, type, duration = 5000) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
             messageDiv.textContent = message;
             messagesDiv.appendChild(messageDiv);
+            messageDiv.style.opacity = 0;
+            setTimeout(() => (messageDiv.style.opacity = 1), 50);
             setTimeout(() => {
-                messageDiv.remove();
-            }, 1500);
+                messageDiv.style.opacity = 0;
+                setTimeout(() => messageDiv.remove(), 500);
+            }, duration);
         }
     
         // Функция для получения всех значений из формы
@@ -212,84 +215,112 @@
         // Функция для проверки значений параметров X1-X18
         function validateParameterValues() {
             let isValid = true;
-            
+            let invalidParams = [];
+
             for (let i = 1; i <= 18; i++) {
-                const initialInput = document.getElementById(`X${i}`);
                 const minInput = document.getElementById(`X${i}_min`);
-                
-                if (initialInput && minInput && initialInput.value && minInput.value) {
-                    const initialValue = parseFloat(initialInput.value);
-                    const minValue = parseFloat(minInput.value);
-                    
-                    if (initialValue < minValue) {
-                        initialInput.style.borderColor = '#e74c3c';
-                        minInput.style.borderColor = '#e74c3c';
-                        isValid = false;
-                        
-                        // Показываем сообщение только для первой ошибки
-                        if (isValid === false) {
-                            showMessage(`Ошибка: Начальное значение X${i} должно быть больше или равно минимальному`, 'error');
-                        }
-                    } else {
-                        initialInput.style.borderColor = '';
-                        minInput.style.borderColor = '';
-                    }
+                const initialInput = document.getElementById(`X${i}`);
+                const maxInput = document.getElementById(`X${i}_max`);
+
+                if (!minInput || !initialInput || !maxInput) continue;
+
+                const minValue = parseFloat(minInput.value);
+                const initValue = parseFloat(initialInput.value);
+                const maxValue = parseFloat(maxInput.value);
+
+                // Сбрасываем цвет перед проверкой
+                minInput.style.borderColor = '';
+                initialInput.style.borderColor = '';
+                maxInput.style.borderColor = '';
+
+                if (isNaN(minValue) || isNaN(initValue) || isNaN(maxValue)) continue;
+
+                let hasError = false;
+
+                // Проверяем: min ≤ initial ≤ max
+                if (initValue < minValue) {
+                    minInput.style.borderColor = '#e74c3c';
+                    initialInput.style.borderColor = '#e74c3c';
+                    hasError = true;
+                }
+                if (maxValue < initValue) {
+                    maxInput.style.borderColor = '#e74c3c';
+                    initialInput.style.borderColor = '#e74c3c';
+                    hasError = true;
+                }
+                if (maxValue < minValue) {
+                    minInput.style.borderColor = '#e74c3c';
+                    maxInput.style.borderColor = '#e74c3c';
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    isValid = false;
+                    invalidParams.push(`X${i}`);
                 }
             }
-            
+
+            if (!isValid) {
+                const list = invalidParams.join(', ');
+                showMessage(
+                    `Ошибка: нарушено условие min ≤ начальное ≤ max у параметров ${list}`,
+                    'error'
+                );
+            }
+
             return isValid;
         }
-    
-        // Функция для проверки одного параметра
+
+
+        // Проверка одного параметра X по всем трем условиям
         function validateSingleParameter(index) {
-            const initialInput = document.getElementById(`X${index}`);
             const minInput = document.getElementById(`X${index}_min`);
-            
-            if (initialInput && minInput && initialInput.value && minInput.value) {
-                const initialValue = parseFloat(initialInput.value);
-                const minValue = parseFloat(minInput.value);
-                
-                if (initialValue < minValue) {
-                    initialInput.style.borderColor = '#e74c3c';
+            const initialInput = document.getElementById(`X${index}`);
+            const maxInput = document.getElementById(`X${index}_max`);
+
+            if (!minInput || !initialInput || !maxInput) return;
+
+            const minValue = parseFloat(minInput.value);
+            const initValue = parseFloat(initialInput.value);
+            const maxValue = parseFloat(maxInput.value);
+
+            // Сбрасываем цвета перед проверкой
+            [minInput, initialInput, maxInput].forEach(input => {
+                input.style.borderColor = '';
+            });
+
+            // Проверяем, если все три значения заданы
+            if (!isNaN(minValue) && !isNaN(initValue) && !isNaN(maxValue)) {
+                if (initValue < minValue) {
                     minInput.style.borderColor = '#e74c3c';
-                } else {
-                    initialInput.style.borderColor = '';
-                    minInput.style.borderColor = '';
+                    initialInput.style.borderColor = '#e74c3c';
                 }
-            } else {
-                // Сбрасываем цвет, если одно из полей пустое
-                initialInput.style.borderColor = '';
-                minInput.style.borderColor = '';
+                if (maxValue < initValue) {
+                    maxInput.style.borderColor = '#e74c3c';
+                    initialInput.style.borderColor = '#e74c3c';
+                }
+                if (maxValue < minValue) {
+                    maxInput.style.borderColor = '#e74c3c';
+                    minInput.style.borderColor = '#e74c3c';
+                }
             }
+            // Если какие-то поля пустые, ничего не подсвечиваем
         }
-    
-        // Добавляем обработчики событий для проверки при вводе
+
+        // Добавляем обработчики событий для проверки при вводе и потере фокуса
         for (let i = 1; i <= 18; i++) {
-            const initialInput = document.getElementById(`X${i}`);
             const minInput = document.getElementById(`X${i}_min`);
-            
-            if (initialInput && minInput) {
-                // Проверка при изменении начального значения
-                initialInput.addEventListener('input', function() {
-                    validateSingleParameter(i);
-                });
-                
-                // Проверка при изменении минимального значения
-                minInput.addEventListener('input', function() {
-                    validateSingleParameter(i);
-                });
-                
-                // Проверка при потере фокуса
-                initialInput.addEventListener('blur', function() {
-                    validateSingleParameter(i);
-                });
-                
-                minInput.addEventListener('blur', function() {
-                    validateSingleParameter(i);
-                });
-            }
+            const initialInput = document.getElementById(`X${i}`);
+            const maxInput = document.getElementById(`X${i}_max`);
+
+            [minInput, initialInput, maxInput].forEach(input => {
+                if (!input) return;
+                input.addEventListener('input', () => validateSingleParameter(i));
+                input.addEventListener('blur', () => validateSingleParameter(i));
+            });
         }
-    
+
+
         // Очистка всех значений
         document.getElementById('clearBtn').addEventListener('click', function () {
             const inputs = document.querySelectorAll('input');
