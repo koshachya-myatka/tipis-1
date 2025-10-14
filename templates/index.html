@@ -20,7 +20,7 @@
                     <thead>
                         <tr>
                             <th>Параметр</th>
-                            <th>Описание</th>
+                            <th>Название</th>
                             <th>Начальное</th>
                             <th>Минимал.</th>
                             <th>Максимал.</th>
@@ -201,7 +201,7 @@
                 setTimeout(() => messageDiv.remove(), 500);
             }, duration);
         }
-    
+
         // Функция для получения всех значений из формы
         function getFormData() {
             const inputs = document.querySelectorAll('input');
@@ -211,7 +211,7 @@
             });
             return data;
         }
-    
+
         // Функция для проверки значений параметров X1-X18
         function validateParameterValues() {
             let isValid = true;
@@ -329,7 +329,7 @@
                 input.style.borderColor = ''; // Сбрасываем цвет границы
             });
             document.getElementById('diagramsContainer').style.display = 'none';
-    
+
             fetch('/clear', {
                 method: 'POST',
                 headers: {
@@ -346,7 +346,7 @@
                     showMessage('Ошибка при очистке значений', 'error');
                 });
         });
-    
+
         // Случайные значения
         document.getElementById('randomBtn').addEventListener('click', function () {
             fetch('/random', {
@@ -372,13 +372,13 @@
                     showMessage('Ошибка при генерации случайных значений', 'error');
                 });
         });
-    
+
         // Построение диаграмм
         document.getElementById('plotBtn').addEventListener('click', function () {
             if (!validateParameterValues()) {
                 return; // Прерываем выполнение если есть ошибки
             }
-            
+
             const formData = getFormData();
             fetch('/plot', {
                 method: 'POST',
