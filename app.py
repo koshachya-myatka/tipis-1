@@ -31,6 +31,7 @@ def update_calculator_from_form(form_data):
                     CALCULATOR.parameters[key] = int(value)
             except ValueError:
                 CALCULATOR.parameters[key] = value
+    CALCULATOR.parameters_norm = CALCULATOR._get_normalized(CALCULATOR.parameters)
     return CALCULATOR.parameters
 
 

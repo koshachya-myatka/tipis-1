@@ -12,78 +12,113 @@ import base64
 
 class Calculator:
     def __init__(self):
-        # временные точки от 0 до 1 с шагом 0.01
+        # временные точки
         self.time_points = np.linspace(0, 1, 100)
-        # все параметры системы (словарь)
-        self.parameters = self.generate_valid_parameters()
         # переменная для решения системы
         self.solution = None
+        # диапазоны значений для параметров системы: (мин, макс, кол-во знаков после запятой)
+        self.pR = {
+            'X1': (0, 10, 0), 'X2': (0, 8, 0), 'X3': (0, 20, 0), 'X4': (0, 3, 6), 'X5': (0, 1, 0), 'X6': (0, 3, 0),
+            'X7': (0, 4, 0), 'X8': (0, 2, 0), 'X9': (0, 1, 0), 'X10': (0, 30, 0), 'X11': (0, 5, 6), 'X12': (0, 2, 6),
+            'X13': (0, 5, 6), 'X14': (0, 1, 0), 'X15': (0, 2, 6), 'X16': (0, 3, 6), 'X17': (0, 180, 0), 'X18': (0, 360, 0),
+        }
+        # константы системы
+        self.constants = {
+            'O0': (0, 8, 0), 'Oin': (0, 2, 0), 'Oout': (0, 2, 0),
+            'Sm': (1, 3, 0), 'Rw': (1, 6, 0), 'Nst': (0, 500, 0),
+            'S_star': (0, 5, 0), 'Ld': (0, 120, 6), 'L_star': (0, 80, 6),
+            'Mf': (0, 22, 0), 'Mp': (0, 22, 0), 'P0': (0, 3, 0),
+            'Pin': (0, 1, 0), 'Pout': (0, 1, 0), 'R0': (0, 4, 0),
+            'Rin': (0, 1, 0), 'Rout': (0, 1, 0), 'C0': (0, 2, 0),
+            'Cin': (0, 1, 0), 'Cout': (0, 1, 0), 'T0': (0, 1, 0),
+            'Tin': (0, 1, 0), 'Tout': (0, 1, 0), 'Nr': (0, 3, 6),
+            'Df': (0, 30, 0), 'Dp': (0, 30, 0), 'DeltaU': (0, 5, 6),
+            'Delta_star_U': (0, 2, 6), 'DeltaI': (0, 2, 6),
+            'Delta_star_I': (0, 0.8, 6), 'DeltaT': (0, 5, 6),
+            'Delta_star_T': (0, 1, 6), 'Tdf': (0, 12, 0),
+            'Tdp': (0, 12, 0), 'DeltaPG': (0, 2, 6),
+            'Delta_star_PG': (0, 0.5, 6), 'DeltaPV': (0, 3, 6),
+            'Delta_star_PV': (0, 1, 6), 'NTP': (0, 360, 0),
+            'Nd': (0, 360, 0), 'Ab': (0, 50, 0),
+        }
+        # все параметры системы (словарь)
+        self.parameters = self.generate_valid_parameters()
+        self.parameters_norm = {}
 
     # генерация словаря случайных значений параметров системы   
-    def generate_system_parameters(self):
+    def generate_system_parameters(self):        
         parameters = {}
         
-        # параметры X1-X18 (от 0.01 до 1.00)
+        # параметры X1-X18
         for i in range(1, 19):
             param_name = f"X{i}"
-            base_value = round(random.uniform(0.01, 1.0), 2)
-            min_value = round(random.uniform(0.01, base_value), 2)
-            max_value = round(random.uniform(base_value, 1.0), 2)
+            min_r, max_r, dec = self.pR[param_name]
+            base_value = round(random.uniform(min_r, max_r), dec)
+            min_value = round(random.uniform(min_r, base_value), dec) if base_value > min_r else min_r
+            max_value = round(random.uniform(base_value, max_r), dec) if base_value < max_r else max_r
             parameters[param_name] = base_value
             parameters[f"{param_name}_min"] = min_value
             parameters[f"{param_name}_max"] = max_value
         
-        # константы системы
-        constants = {
-            'O0': (1, 5), 'Oin': (1, 3), 'Oout': (1, 3),
-            'Sm': (1, 2), 'Rw': (1, 5), 'Nst': (1, 10),
-            'S_star': (1, 3), 'Ld': (1, 10), 'L_star': (1, 5),
-            'Mf': (1, 10), 'Mp': (1, 10), 'P0': (1, 5),
-            'Pin': (1, 2), 'Pout': (1, 2), 'R0': (1, 5),
-            'Rin': (1, 2), 'Rout': (1, 2), 'C0': (1, 5),
-            'Cin': (1, 2), 'Cout': (1, 2), 'T0': (1, 5),
-            'Tin': (1, 2), 'Tout': (1, 2), 'Nr': (1, 5),
-            'Df': (1, 10), 'Dp': (1, 5), 'DeltaU': (1, 5),
-            'Delta_star_U': (1, 3), 'DeltaI': (1, 5),
-            'Delta_star_I': (1, 3), 'DeltaT': (1, 5),
-            'Delta_star_T': (1, 3), 'Tdf': (1, 10),
-            'Tdp': (1, 10), 'DeltaPG': (1, 5),
-            'Delta_star_PG': (1, 3), 'DeltaPV': (1, 5),
-            'Delta_star_PV': (1, 3), 'NTP': (1, 20),
-            'Nd': (1, 20), 'Ab': (1, 10),
-        }
-        
-        for const_name, (min_val, max_val) in constants.items():
-            parameters[const_name] = random.randint(min_val, max_val)
+        # константы
+        for const_name, (min_val, max_val, dec_places) in self.constants.items():
+            parameters[const_name] = round(random.uniform(min_val, max_val), dec_places)
         
         # коэффициенты для полиномиальных функций f1-f36
         for i in range(1, 37):
-            parameters[f"f{i}_a3"] = round(random.uniform(0.1, 10.0), 2)
-            parameters[f"f{i}_a2"] = round(random.uniform(0.1, 10.0), 2)
-            parameters[f"f{i}_a1"] = round(random.uniform(0.1, 10.0), 2)
-            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 10.0), 2)
+            parameters[f"f{i}_a3"] = round(random.uniform(0, 2.0), 6)
+            parameters[f"f{i}_a2"] = round(random.uniform(0, 2.0), 6)
+            parameters[f"f{i}_a1"] = round(random.uniform(0, 1.0), 6)
+            parameters[f"f{i}_a0"] = round(random.uniform(0, 1.0), 6)
         
         return parameters
 
     def generate_valid_parameters(self):
-        for _ in range(10):  # максимум 10 попыток
+        # максимум 10 попыток
+        for _ in range(10):  
             params = self.generate_system_parameters()
+            params_norm = self._get_normalized(params)
             self.parameters = params
-            self.solve_system()
-            if np.all(self.solution.y >= 0):
-                return params
+            self.parameters_norm = params_norm
+            try:                
+                self.solve_system()
+                if np.all(self.solution.y >= -1e-6):                    
+                    return params
+            except:
+                continue
         raise ValueError("Не удалось сгенерировать физически корректные параметры после 10 попыток")
     
-    # вычисление значения полинома f_n(x) = a3*x^3 + a2*x^2 + a1*x + a0
-    # в параметрах (значение икса, n-номер для fn)
-    def polynomial_value(self, x, fn_index):        
-        a3 = self.parameters.get(f"f{fn_index}_a3", 0)
-        a2 = self.parameters.get(f"f{fn_index}_a2", 0)
-        a1 = self.parameters.get(f"f{fn_index}_a1", 0)
-        a0 = self.parameters.get(f"f{fn_index}_a0", 0)
+    def _get_normalized(self, params):
+        params_norm = params.copy()        
+        # Нормализация значений переменных от 0 до 1
+        for i in range(18):
+            param_name = f"X{i+1}"
+            min_val, max_val, _ = self.pR[param_name]
+            params_norm[param_name] = (params_norm[param_name] - min_val) / (max_val - min_val)
+            params_norm[f"{param_name}_min"] = (params_norm[f"{param_name}_min"] - min_val) / (max_val - min_val)
+            params_norm[f"{param_name}_max"] = (params_norm[f"{param_name}_max"] - min_val) / (max_val - min_val)
+
+        for const_name, (min_val, max_val, _) in self.constants.items():
+            params_norm[const_name] = (params_norm[const_name] - min_val) / (max_val - min_val)   
+
+        for i in range(1, 37):
+            a3k = f"f{i}_a3"
+            a2k = f"f{i}_a2"
+            a1k = f"f{i}_a1"
+            a0k = f"f{i}_a0"
+            params_norm[a3k] = params_norm.get(a3k, 0.0) / 2.0
+            params_norm[a2k] = params_norm.get(a2k, 0.0) / 2.0
+            params_norm[a1k] = params_norm.get(a1k, 0.0) / 1.0
+            params_norm[a0k] = params_norm.get(a0k, 0.0) / 1.0
         
-        # ограничиваем значение x для избежания переполнения
-        x = np.clip(x, 0, 1)  # X всегда от 0 до 1
+        return params_norm
+    
+    # вычисление значения полинома f_n(x) = a3*x^3 + a2*x^2 + a1*x + a0
+    def polynomial_value(self, x, fn_index):        
+        a3 = self.parameters_norm.get(f"f{fn_index}_a3", 0)
+        a2 = self.parameters_norm.get(f"f{fn_index}_a2", 0)
+        a1 = self.parameters_norm.get(f"f{fn_index}_a1", 0)
+        a0 = self.parameters_norm.get(f"f{fn_index}_a0", 0)
         
         return a3*x**3 + a2*x**2 + a1*x + a0
     
@@ -91,15 +126,9 @@ class Calculator:
     def system_equations(self, t, X):
         try:
             dXdt = np.zeros(18)
-            params = self.parameters
-            
-            # ограничиваем значения X от 0 до 1
-            X = np.clip(X, 0, 1)
+            params = self.parameters_norm
 
-            # сами функции производных для Х1-Х18, 
-            # параметр Хn указывается с индексом на 1 меньше, чем на картинке
-            # номер функции f соответствует картинке
-            
+            # уравнения системы
             dXdt[0] = params['Rw'] * self.polynomial_value(X[2], 1) * self.polynomial_value(X[10], 2) * \
                       self.polynomial_value(X[11], 3) * self.polynomial_value(X[12], 4) - \
                       params['Nst'] * self.polynomial_value(X[1], 5) * self.polynomial_value(X[7], 6) * \
@@ -149,9 +178,12 @@ class Calculator:
                        self.polynomial_value(X[7], 33) * self.polynomial_value(X[13], 34) - \
                        (params['Ab'] + params['Ld']) * self.polynomial_value(X[0], 35) * self.polynomial_value(X[3], 36)
             
-            # ограничиваем производные для стабильности и положительных значений
-            dXdt = np.clip(dXdt, -0.1, 0.1)
-            
+            # dXdt = np.array(dXdt, dtype=float)
+            # mask_block = (X <= 0) & (dXdt < 0)
+            # dXdt[mask_block] = 0.0
+
+            dXdt = np.clip(dXdt, 0, None)  
+
             return dXdt
             
         except Exception as e:
@@ -159,10 +191,10 @@ class Calculator:
             return np.zeros(18)
     
     # решение системы дифференциальных уравнений
-    def solve_system(self):
+    def solve_system(self):        
         try:
-            # начальные условия из параметров, список значени Х1-Х18 на момент времени 0
-            X0 = [self.parameters[f"X{i}"] for i in range(1, 19)]
+            # начальные условия из параметров
+            X0 = [self.parameters_norm[f"X{i}"] for i in range(1, 19)]
             
             # решение системы
             self.solution = solve_ivp(
@@ -171,42 +203,34 @@ class Calculator:
                 X0, 
                 t_eval=self.time_points, 
                 method='RK45',
-                rtol=1e-3,
-                atol=1e-3
+                rtol=1e-6,
+                atol=1e-8
             )
-            
-            # срез значений по оси y от 0 до 1
-            self.solution.y = np.clip(self.solution.y, 0, 1)
-            
+            self.solution.y = np.clip(self.solution.y, 0, None)                        
             return self.solution
             
         except Exception as e:
             print(f"Ошибка при решении системы: {e}")
-            # Возвращаем фиктивное решение для отладки
-            self.solution = type('obj', (object,), {
-                't': self.time_points,
-                'y': np.random.uniform(0, 1, (18, len(self.time_points)))
-            })
-            return self.solution
-        
-    # отрисовка графика изменений Х1-Х18 по времени
+            return []
+
     def plot_time_series(self):
         if self.solution is None:
             self.solve_system()
         fig, ax = plt.subplots(figsize=(12, 8))
         colors = plt.cm.tab20(np.linspace(0, 1, 18))
-        for i in range(18):
-            y = self.solution.y[i]
-            ax.plot(self.solution.t, y, label=f'X{i+1}', color=colors[i], linewidth=2)
+        for i in range(18):            
+            y = [val for val in self.solution.y[i] if val <= 1.15]
+            ax.plot(self.solution.t[:len(y)], y, label=f'X{i+1}', color=colors[i], linewidth=2)
             # Подпись в конце линии
-            ax.text(self.solution.t[-1] + 0.01, y[-1], f'X{i+1}', color=colors[i],
-                    fontsize=8, va='center')
+            if len(y) > 0:
+                ax.text(self.solution.t[len(y)-1]+0.005, y[-1], f'X{i+1}', color="black",
+                    fontsize=12, va='center')
         plt.xlabel('Время', fontsize=12)
         plt.ylabel('Значение параметра', fontsize=12)
         plt.title('Изменение параметров X1-X18 по времени', fontsize=14)
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.grid(True, alpha=0.3)
-        plt.ylim(0, 1.1)  # Ограничиваем ось Y от 0 до 1
+        plt.ylim(0, 1.2)  # Ограничиваем ось Y от 0 до 1
         plt.tight_layout()
 
         # сохраняем в буфер
@@ -232,7 +256,7 @@ class Calculator:
         axes = axes.flatten()
         colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
         # красный контур — максимальные пределы
-        max_values = [self.parameters.get(f"X{i+1}_max", 1) for i in range(18)]
+        max_values = [self.parameters_norm.get(f"X{i+1}_max", 1) for i in range(18)]
         max_values += max_values[:1]
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
             if i >= len(time_points):
