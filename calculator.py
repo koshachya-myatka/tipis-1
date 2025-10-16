@@ -12,6 +12,26 @@ import base64
 
 class Calculator:
     def __init__(self):
+        self.names = {
+            "X1": "Количество забракованных балок на 100 единиц продукции",
+            "X2": "Численность операторов РТК",
+            "X3": "Среднее количество остановок РТК на один цикл",
+            "X4": "Средняя длина дефектных сварных швов на 1 единицу продукции",
+            "X5": "Выполненные работы по плановому обслуживанию РТК",
+            "X6": "Численность программистов",
+            "X7": "Численность наладчиков сварочного оборудования",
+            "X8": "Численность контролеров ОТК",
+            "X9": "Численность цеховых технологов",
+            "X10": "Количество дней просрочки поставки материалов и запчастей для ремонта РТК",
+            "X11": "Среднее отклонение напряжения сварочной дуги",
+            "X12": "Среднее отклонение тока на двигателе подающего блока",
+            "X13": "Среднее отклонение манипулятора от программной траектории",
+            "X14": "Наличие на рабочих местах необходимой технологической документации",
+            "X15": "Отклонение давления защитного газа",
+            "X16": "Отклонение давления сжатого воздуха",
+            "X17": "План производства на заданный период в единицах продукции",
+            "X18": "Количество балок, сданных ОТК с первого предъявления"
+        }
         # временные точки
         self.time_points = np.linspace(0, 1, 100)
         # переменная для решения системы
@@ -114,7 +134,11 @@ class Calculator:
         return params_norm
     
     # вычисление значения полинома f_n(x) = a3*x^3 + a2*x^2 + a1*x + a0
-    def polynomial_value(self, x, fn_index):        
+    def polynomial_value(self, x, fn_index):   
+        # a3 = self.parameters.get(f"f{fn_index}_a3", 0)
+        # a2 = self.parameters.get(f"f{fn_index}_a2", 0)
+        # a1 = self.parameters.get(f"f{fn_index}_a1", 0)
+        # a0 = self.parameters.get(f"f{fn_index}_a0", 0)     
         a3 = self.parameters_norm.get(f"f{fn_index}_a3", 0)
         a2 = self.parameters_norm.get(f"f{fn_index}_a2", 0)
         a1 = self.parameters_norm.get(f"f{fn_index}_a1", 0)
@@ -178,12 +202,7 @@ class Calculator:
                        self.polynomial_value(X[7], 33) * self.polynomial_value(X[13], 34) - \
                        (params['Ab'] + params['Ld']) * self.polynomial_value(X[0], 35) * self.polynomial_value(X[3], 36)
             
-            # dXdt = np.array(dXdt, dtype=float)
-            # mask_block = (X <= 0) & (dXdt < 0)
-            # dXdt[mask_block] = 0.0
-
             dXdt = np.clip(dXdt, 0, None)  
-
             return dXdt
             
         except Exception as e:
@@ -213,33 +232,70 @@ class Calculator:
             print(f"Ошибка при решении системы: {e}")
             return []
 
-    def plot_time_series(self):
+    def plot_time_series(self):           
         if self.solution is None:
             self.solve_system()
-        fig, ax = plt.subplots(figsize=(12, 8))
+        # создаем график, состоящий из трех подграфиков
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=True)
         colors = plt.cm.tab20(np.linspace(0, 1, 18))
-        for i in range(18):            
-            y = [val for val in self.solution.y[i] if val <= 1.15]
-            ax.plot(self.solution.t[:len(y)], y, label=f'X{i+1}', color=colors[i], linewidth=2)
-            # Подпись в конце линии
-            if len(y) > 0:
-                ax.text(self.solution.t[len(y)-1]+0.005, y[-1], f'X{i+1}', color="black",
-                    fontsize=12, va='center')
-        plt.xlabel('Время', fontsize=12)
-        plt.ylabel('Значение параметра', fontsize=12)
-        plt.title('Изменение параметров X1-X18 по времени', fontsize=14)
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-        plt.grid(True, alpha=0.3)
-        plt.ylim(0, 1.2)  # Ограничиваем ось Y от 0 до 1
+        groups = [(0, 6), (6, 12), (12, 18)]
+
+        # переменная для функций под графиками
+        func_descriptions = []
+
+        for ax_idx, (start, end) in enumerate(groups):
+            ax = axes[ax_idx]
+            for i in range(start, end):
+                t = self.solution.t
+                y = self.solution.y[i]
+                # считаем функцию для кривой Хn  
+                coeffs = np.polyfit(t, y, deg=3)
+                a3, a2, a1, a0 = coeffs              
+                func_descriptions.append(
+                    f"X{i+1}(t) = {a3}·t³ + {a2}·t² + {a1}·t + {a0}"
+                )   
+                # рисуем кривую, обрезаем ее значение, если оно стало больше 1.15 по у, и подписываем ее
+                y = [val for val in self.solution.y[i] if val <= 1.15]
+                y_label = self.names[f'X{i+1}']
+                ax.plot(self.solution.t[:len(y)], y, label=f'X{i+1} ({y_label})', color=colors[i], linewidth=2)
+                if len(y) > 0:
+                    ax.text(self.solution.t[len(y)-1]+0.015, y[-1]+0.015, f'X{i+1}', color="black",
+                        fontsize=10, va='center')
+                    
+            ax.set_title(f'X{start+1}–X{end}', fontsize=14)
+            ax.set_xlabel('Время', fontsize=10)
+            if ax_idx == 0:
+                ax.set_ylabel('Значение параметра', fontsize=10)
+            ax.grid(True, alpha=0.3)
+            ax.set_ylim(0, 1.2)
+
+        # объединяем все легенды
+        handles, labels = [], []
+        for ax in axes:
+            h, l = ax.get_legend_handles_labels()
+            handles += h
+            labels += l
+
+        # общая легенда со всеми X1–X18, в несколько столбцов
+        fig.legend(handles, labels,
+                loc='upper center',
+                ncol=1,                
+                fontsize=11,
+                frameon=True,
+                bbox_to_anchor=(0.5, 1.75)) 
+        
+        # выводим текст под графиками
+        func_text = "\n".join(func_descriptions)
+        fig.text(0.5, -0.08, func_text, ha='center', va='top', fontsize=12)
+
         plt.tight_layout()
 
-        # сохраняем в буфер
-        time_series_buffer = io.BytesIO()
-        plt.savefig(time_series_buffer, format='png', dpi=100, bbox_inches='tight')
-        time_series_buffer.seek(0)
-        time_series_b64 = base64.b64encode(time_series_buffer.getvalue()).decode()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        img_b64 = base64.b64encode(buf.getvalue()).decode()
         plt.close(fig)
-        return time_series_b64
+        return img_b64
     
     # отрисовка 5 лепестковых диаграмм
     def plot_radar_charts(self):
@@ -278,7 +334,6 @@ class Calculator:
             ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color=colors[i], pad=10)
         for i in range(len(time_points), len(axes)):
             fig.delaxes(axes[i])
-        plt.suptitle('Лепестковые диаграммы параметров X1-X18', fontsize=14)
         plt.tight_layout()
         radar_buffer = io.BytesIO()
         plt.savefig(radar_buffer, format='png', dpi=100, bbox_inches='tight')
