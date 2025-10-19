@@ -22,7 +22,8 @@
                             <th>Параметр</th>
                             <th>Название</th>
                             <th>Начальное</th>
-                            <th>Минимальное</th>
+                            <th>Мин.</th>
+                            <th>Макс.</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -51,10 +52,12 @@
                                 {% elif i == 18 %}Количество балок, сданных ОТК с первого предъявления
                                 {% endif %}
                             </td>
-                            <td><input type="number" min="0" id="X{{ i }}" placeholder="0.0"
-                                    value="{{ parameters.get('X' ~ i, '') }}"></td>
-                            <td><input type="number" min="0" id="X{{ i }}_min" placeholder="0.0"
+                            <td><input type="number" min="0" id="X{{ i }}" value="{{ parameters.get('X' ~ i, '') }}">
+                            </td>
+                            <td><input type="number" min="0" id="X{{ i }}_min"
                                     value="{{ parameters.get('X' ~ i ~ '_min', '') }}"></td>
+                            <td><input type="number" min="0" id="X{{ i }}_max"
+                                    value="{{ parameters.get('X' ~ i ~ '_max', '') }}"></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -169,7 +172,7 @@
     </div>
 
     <div class="buttons-container">
-        <a href="{{ url_for('index2') }}">Лабораторная 2</a>
+        <a href="{{ url_for('index') }}">Лабораторная 1</a>
         <button id="clearBtn">Очистить значения</button>
         <button id="randomBtn">Случайные значения</button>
         <button id="plotBtn">Построить диаграммы</button>        
@@ -189,15 +192,18 @@
 
     <script>
         // Функция для отображения сообщений
-        function showMessage(message, type) {
+        function showMessage(message, type, duration = 5000) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
             messageDiv.textContent = message;
             messagesDiv.appendChild(messageDiv);
+            messageDiv.style.opacity = 0;
+            setTimeout(() => (messageDiv.style.opacity = 1), 50);
             setTimeout(() => {
-                messageDiv.remove();
-            }, 1500);
+                messageDiv.style.opacity = 0;
+                setTimeout(() => messageDiv.remove(), 500);
+            }, duration);
         }
 
         // Функция для получения всех значений из формы
@@ -213,83 +219,111 @@
         // Функция для проверки значений параметров X1-X18
         function validateParameterValues() {
             let isValid = true;
+            let invalidParams = [];
 
             for (let i = 1; i <= 18; i++) {
-                const initialInput = document.getElementById(`X${i}`);
                 const minInput = document.getElementById(`X${i}_min`);
+                const initialInput = document.getElementById(`X${i}`);
+                const maxInput = document.getElementById(`X${i}_max`);
 
-                if (initialInput && minInput && initialInput.value && minInput.value) {
-                    const initialValue = parseFloat(initialInput.value);
-                    const minValue = parseFloat(minInput.value);
+                if (!minInput || !initialInput || !maxInput) continue;
 
-                    if (initialValue < minValue) {
-                        initialInput.style.borderColor = '#e74c3c';
-                        minInput.style.borderColor = '#e74c3c';
-                        isValid = false;
+                const minValue = parseFloat(minInput.value);
+                const initValue = parseFloat(initialInput.value);
+                const maxValue = parseFloat(maxInput.value);
 
-                        // Показываем сообщение только для первой ошибки
-                        if (isValid === false) {
-                            showMessage(`Ошибка: Начальное значение X${i} должно быть больше или равно минимальному`, 'error');
-                        }
-                    } else {
-                        initialInput.style.borderColor = '';
-                        minInput.style.borderColor = '';
-                    }
+                // Сбрасываем цвет перед проверкой
+                minInput.style.borderColor = '';
+                initialInput.style.borderColor = '';
+                maxInput.style.borderColor = '';
+
+                if (isNaN(minValue) || isNaN(initValue) || isNaN(maxValue)) continue;
+
+                let hasError = false;
+
+                // Проверяем: min ≤ initial ≤ max
+                if (initValue < minValue) {
+                    minInput.style.borderColor = '#e74c3c';
+                    initialInput.style.borderColor = '#e74c3c';
+                    hasError = true;
                 }
+                if (maxValue < initValue) {
+                    maxInput.style.borderColor = '#e74c3c';
+                    initialInput.style.borderColor = '#e74c3c';
+                    hasError = true;
+                }
+                if (maxValue < minValue) {
+                    minInput.style.borderColor = '#e74c3c';
+                    maxInput.style.borderColor = '#e74c3c';
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    isValid = false;
+                    invalidParams.push(`X${i}`);
+                }
+            }
+
+            if (!isValid) {
+                const list = invalidParams.join(', ');
+                showMessage(
+                    `Ошибка: нарушено условие min ≤ начальное ≤ max у параметров ${list}`,
+                    'error'
+                );
             }
 
             return isValid;
         }
 
-        // Функция для проверки одного параметра
+
+        // Проверка одного параметра X по всем трем условиям
         function validateSingleParameter(index) {
-            const initialInput = document.getElementById(`X${index}`);
             const minInput = document.getElementById(`X${index}_min`);
+            const initialInput = document.getElementById(`X${index}`);
+            const maxInput = document.getElementById(`X${index}_max`);
 
-            if (initialInput && minInput && initialInput.value && minInput.value) {
-                const initialValue = parseFloat(initialInput.value);
-                const minValue = parseFloat(minInput.value);
+            if (!minInput || !initialInput || !maxInput) return;
 
-                if (initialValue < minValue) {
-                    initialInput.style.borderColor = '#e74c3c';
+            const minValue = parseFloat(minInput.value);
+            const initValue = parseFloat(initialInput.value);
+            const maxValue = parseFloat(maxInput.value);
+
+            // Сбрасываем цвета перед проверкой
+            [minInput, initialInput, maxInput].forEach(input => {
+                input.style.borderColor = '';
+            });
+
+            // Проверяем, если все три значения заданы
+            if (!isNaN(minValue) && !isNaN(initValue) && !isNaN(maxValue)) {
+                if (initValue < minValue) {
                     minInput.style.borderColor = '#e74c3c';
-                } else {
-                    initialInput.style.borderColor = '';
-                    minInput.style.borderColor = '';
+                    initialInput.style.borderColor = '#e74c3c';
                 }
-            } else {
-                // Сбрасываем цвет, если одно из полей пустое
-                initialInput.style.borderColor = '';
-                minInput.style.borderColor = '';
+                if (maxValue < initValue) {
+                    maxInput.style.borderColor = '#e74c3c';
+                    initialInput.style.borderColor = '#e74c3c';
+                }
+                if (maxValue < minValue) {
+                    maxInput.style.borderColor = '#e74c3c';
+                    minInput.style.borderColor = '#e74c3c';
+                }
             }
+            // Если какие-то поля пустые, ничего не подсвечиваем
         }
 
-        // Добавляем обработчики событий для проверки при вводе
+        // Добавляем обработчики событий для проверки при вводе и потере фокуса
         for (let i = 1; i <= 18; i++) {
-            const initialInput = document.getElementById(`X${i}`);
             const minInput = document.getElementById(`X${i}_min`);
+            const initialInput = document.getElementById(`X${i}`);
+            const maxInput = document.getElementById(`X${i}_max`);
 
-            if (initialInput && minInput) {
-                // Проверка при изменении начального значения
-                initialInput.addEventListener('input', function () {
-                    validateSingleParameter(i);
-                });
-
-                // Проверка при изменении минимального значения
-                minInput.addEventListener('input', function () {
-                    validateSingleParameter(i);
-                });
-
-                // Проверка при потере фокуса
-                initialInput.addEventListener('blur', function () {
-                    validateSingleParameter(i);
-                });
-
-                minInput.addEventListener('blur', function () {
-                    validateSingleParameter(i);
-                });
-            }
+            [minInput, initialInput, maxInput].forEach(input => {
+                if (!input) return;
+                input.addEventListener('input', () => validateSingleParameter(i));
+                input.addEventListener('blur', () => validateSingleParameter(i));
+            });
         }
+
 
         // Очистка всех значений
         document.getElementById('clearBtn').addEventListener('click', function () {
@@ -300,7 +334,7 @@
             });
             document.getElementById('diagramsContainer').style.display = 'none';
 
-            fetch('/clear', {
+            fetch('/clear2', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -319,7 +353,7 @@
 
         // Случайные значения
         document.getElementById('randomBtn').addEventListener('click', function () {
-            fetch('/random', {
+            fetch('/random2', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -343,18 +377,98 @@
                 });
         });
 
-        // Построение диаграмм
-        document.getElementById('plotBtn').addEventListener('click', function () {
-            if (!validateParameterValues()) {
-                return; // Прерываем выполнение если есть ошибки
+        // Диапазоны значений
+        const allowedRanges = {
+            pR: {
+                X1: [0, 10], X2: [0, 8], X3: [0, 20], X4: [0, 3], X5: [0, 1],
+                X6: [0, 3], X7: [0, 4], X8: [0, 2], X9: [0, 1], X10: [0, 30],
+                X11: [0, 5], X12: [0, 2], X13: [0, 5], X14: [0, 1],
+                X15: [0, 2], X16: [0, 3], X17: [0, 180], X18: [0, 360]
+            },
+            constants: {
+                O0: [0, 8], Oin: [0, 2], Oout: [0, 2], Sm: [1, 3], Rw: [1, 6],
+                Nst: [0, 500], S_star: [0, 5], Ld: [0, 120], L_star: [0, 80],
+                Mf: [0, 22], Mp: [0, 22], P0: [0, 3], Pin: [0, 1], Pout: [0, 1],
+                R0: [0, 4], Rin: [0, 1], Rout: [0, 1], C0: [0, 2], Cin: [0, 1],
+                Cout: [0, 1], T0: [0, 1], Tin: [0, 1], Tout: [0, 1], Nr: [0, 3],
+                Df: [0, 30], Dp: [0, 30], DeltaU: [0, 5], Delta_star_U: [0, 2],
+                DeltaI: [0, 2], Delta_star_I: [0, 0.8], DeltaT: [0, 5],
+                Delta_star_T: [0, 1], Tdf: [0, 12], Tdp: [0, 12],
+                DeltaPG: [0, 2], Delta_star_PG: [0, 0.5],
+                DeltaPV: [0, 3], Delta_star_PV: [0, 1],
+                NTP: [0, 360], Nd: [0, 360], Ab: [0, 50]
+            }
+        };
+
+        // Проверка, что введённое значение в пределах допустимого диапазона
+        function validateGlobalRanges() {
+            let isValid = true;
+            let errors = [];
+
+            // Проверяем параметры X1-X18
+            for (let i = 1; i <= 18; i++) {
+                const input = document.getElementById(`X${i}`);
+                const input_min = document.getElementById(`X${i}_min`);
+                const input_max = document.getElementById(`X${i}_max`);
+                if (!input) continue;
+
+                const value = parseFloat(input.value);
+                const value_min = parseFloat(input_min.value);
+                const value_max = parseFloat(input_max.value);
+                const range = allowedRanges.pR[`X${i}`];
+                const [minVal, maxVal] = range;
+
+                input.style.borderColor = ''; // сброс
+                input_min.style.borderColor = ''; // сброс
+                input_max.style.borderColor = ''; // сброс
+
+                if (isNaN(value)) continue;
+                if ((value < minVal || value > maxVal) || (value_min < minVal || value_min > maxVal) || (value_max < minVal || value_max > maxVal)) {
+                    input.style.borderColor = '#e74c3c';
+                    input_min.style.borderColor = '#e74c3c';
+                    input_max.style.borderColor = '#e74c3c';
+                    errors.push(`X${i} (допустимо от ${minVal} до ${maxVal})`);
+                    isValid = false;
+                }
             }
 
+            // Проверяем константы
+            for (const constName in allowedRanges.constants) {
+                const input = document.getElementById(constName);
+                if (!input) continue;
+
+                const value = parseFloat(input.value);
+                const [minVal, maxVal] = allowedRanges.constants[constName];
+                input.style.borderColor = ''; // сброс
+
+                if (isNaN(value)) continue;
+                if (value < minVal || value > maxVal) {
+                    input.style.borderColor = '#e74c3c';
+                    errors.push(`${constName} (допустимо от ${minVal} до ${maxVal})`);
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) {
+                showMessage(
+                    `Ошибка: значения параметра выходят за допустимые пределы: ${errors}`,
+                    'error',
+                    7000
+                );
+            }
+
+            return isValid;
+        }
+
+        // Построение диаграмм с проверками данных
+        document.getElementById('plotBtn').addEventListener('click', function () {
+            if (!validateParameterValues()) return;
+            if (!validateGlobalRanges()) return;
+
             const formData = getFormData();
-            fetch('/plot', {
+            fetch('/plot2', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             })
                 .then(response => response.json())
@@ -368,9 +482,7 @@
                         showMessage(data.message, 'error');
                     }
                 })
-                .catch(error => {
-                    showMessage('Ошибка при построении диаграмм', 'error');
-                });
+                .catch(() => showMessage('Ошибка при построении диаграмм', 'error'));
         });
     </script>
 </body>
