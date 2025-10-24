@@ -33,7 +33,7 @@ class Calculator2:
             "X18": "Количество балок, сданных ОТК с первого предъявления"
         }
         # временные точки
-        self.time_points = np.linspace(0, 1, 100)
+        self.time_points = np.linspace(0, 10, 300)
         # переменная для решения системы
         self.solution = None
         # диапазоны значений для параметров системы: (мин, макс, кол-во знаков после запятой)
@@ -66,9 +66,9 @@ class Calculator2:
         self.parameters_norm = {}
 
     # генерация словаря случайных значений параметров системы   
-    def generate_system_parameters(self):        
+    def generate_system_parameters(self):
         parameters = {}
-        
+
         # параметры X1-X18
         for i in range(1, 19):
             param_name = f"X{i}"
@@ -80,18 +80,19 @@ class Calculator2:
             parameters[param_name] = base_value
             parameters[f"{param_name}_min"] = min_value
             parameters[f"{param_name}_max"] = max_value
-        
+
         # константы
         for const_name, (min_val, max_val, dec_places) in self.constants.items():
             parameters[const_name] = round(random.uniform(min_val, max_val), dec_places)
-        
-        # коэффициенты для полиномиальных функций f1-f36
-        for i in range(1, 37):           
-            parameters[f"f{i}_a3"] = round(random.uniform(0.0, 0.3), 6)
-            parameters[f"f{i}_a2"] = round(random.uniform(0.0, 0.4), 6)
-            parameters[f"f{i}_a1"] = round(random.uniform(0.1, 0.6), 6)
-            parameters[f"f{i}_a0"] = round(random.uniform(0.0, 0.2), 6)
-        
+
+        # коэффициенты для полиномиальных функций f1-f36 с увеличенными значениями
+        for i in range(1, 37):
+            # Увеличиваем диапазоны коэффициентов для более нелинейного поведения
+            parameters[f"f{i}_a3"] = round(random.uniform(-0.5, 0.5), 6)  # увеличили диапазон
+            parameters[f"f{i}_a2"] = round(random.uniform(-0.8, 0.8), 6)  # увеличили диапазон
+            parameters[f"f{i}_a1"] = round(random.uniform(0.5, 2.0), 6)   # увеличили диапазон
+            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 0.8), 6)   # увеличили диапазон
+
         return parameters
 
     def generate_valid_parameters(self):
@@ -132,89 +133,99 @@ class Calculator2:
         a0 = self.parameters.get(f"f{fn_index}_a0", 0)
         
         return a3*x**3 + a2*x**2 + a1*x + a0
-    
+
     # система дифференциальных уравнений
     def system_equations(self, t, X):
         try:
             dXdt = np.zeros(18)
             params = self.parameters_norm
 
-            # уравнения системы
-            dXdt[0] = params['Rw'] * self.polynomial_value(X[2], 1) * self.polynomial_value(X[10], 2) * \
-                      self.polynomial_value(X[11], 3) * self.polynomial_value(X[12], 4) - \
-                      params['Nst'] * self.polynomial_value(X[1], 5) * self.polynomial_value(X[7], 6) * \
-                      self.polynomial_value(X[16], 7)
-            
-            dXdt[1] = (params['O0'] + params['Oin']) * self.polynomial_value(X[16], 12) - \
-                      (params['Sm'] + params['Rw'] + params['Oout'])
-            
-            dXdt[2] = params['Nst'] / max(params['Rw'], 0.001) * self.polynomial_value(X[9], 8) * \
-                      self.polynomial_value(X[14], 9) * self.polynomial_value(X[15], 10) - \
-                      params['S_star'] * self.polynomial_value(X[1], 11)
-            
-            dXdt[3] = params['Ld'] * self.polynomial_value(X[14], 13) * self.polynomial_value(X[15], 14) - \
-                      params['L_star'] * self.polynomial_value(X[1], 15)
-            
-            dXdt[4] = params['Mf'] * self.polynomial_value(X[5], 16) * self.polynomial_value(X[6], 17) - \
-                      params['Mp'] * self.polynomial_value(X[9], 18)
-            
-            dXdt[5] = (params['P0'] + params['Pin']) * self.polynomial_value(X[16], 19) - \
-                      (params['Sm'] + params['Rw'] + params['Pout'])
-            
-            dXdt[6] = (params['R0'] + params['Rin']) * self.polynomial_value(X[16], 20) - \
-                      (params['Sm'] + params['Rw'] + params['Rout'])
-            
-            dXdt[7] = (params['C0'] + params['Cin']) * self.polynomial_value(X[16], 21) - \
-                      (params['Sm'] + params['Rw'] + params['Cout'])
-            
-            dXdt[8] = (params['T0'] + params['Tin']) * self.polynomial_value(X[16], 22) - params['Tout']
-            
-            dXdt[9] = (params['Nr'] + params['Df']) * self.polynomial_value(X[16], 23) - params['Dp']
-            
-            dXdt[10] = params['DeltaU'] - params['Delta_star_U'] * self.polynomial_value(X[4], 24)
-            
-            dXdt[11] = params['DeltaI'] - params['Delta_star_I'] * self.polynomial_value(X[4], 25)
-            
-            dXdt[12] = params['DeltaT'] - params['Delta_star_T'] * self.polynomial_value(X[4], 26)
-            
-            dXdt[13] = params['Tdf'] * self.polynomial_value(X[8], 27) - params['Tdp']
-            
-            dXdt[14] = params['DeltaPG'] - params['Delta_star_PG'] * self.polynomial_value(X[16], 28)
-            
-            dXdt[15] = params['DeltaPV'] - params['Delta_star_PV'] * self.polynomial_value(X[16], 29)
-            
-            dXdt[16] = params['NTP'] * self.polynomial_value(X[8], 30) - params['Rw']
-            
-            dXdt[17] = params['Nd'] * self.polynomial_value(X[5], 31) * self.polynomial_value(X[6], 32) * \
-                       self.polynomial_value(X[7], 33) * self.polynomial_value(X[13], 34) - \
-                       (params['Ab'] + params['Ld']) * self.polynomial_value(X[0], 35) * self.polynomial_value(X[3], 36)
-            
-            dXdt = np.clip(dXdt, 0, None)  
+            # Добавляем плавные ограничения для предотвращения резких скачков
+            smooth_clip = lambda x: np.tanh(x) * 0.5 + 0.5  # Плавное ограничение от 0 до 1
+
+            # уравнения системы с правильными зависимостями
+            dXdt[0] = smooth_clip(params['Rw'] * self.polynomial_value(X[2], 1) * self.polynomial_value(X[10], 2) * \
+                                  self.polynomial_value(X[11], 3) * self.polynomial_value(X[12], 4) - \
+                                  params['Nst'] * self.polynomial_value(X[1], 5) * self.polynomial_value(X[7], 6) * \
+                                  self.polynomial_value(X[16], 7))
+
+            dXdt[1] = smooth_clip((params['O0'] + params['Oin']) * self.polynomial_value(X[16], 12) - \
+                                  (params['Sm'] + params['Rw'] + params['Oout']))
+
+            dXdt[2] = smooth_clip(params['Nst'] / max(params['Rw'], 0.001) * self.polynomial_value(X[9], 8) * \
+                                  self.polynomial_value(X[14], 9) * self.polynomial_value(X[15], 10) - \
+                                  params['S_star'] * self.polynomial_value(X[1], 11))
+
+            dXdt[3] = smooth_clip(params['Ld'] * self.polynomial_value(X[14], 13) * self.polynomial_value(X[15], 14) - \
+                                  params['L_star'] * self.polynomial_value(X[1], 15))
+
+            dXdt[4] = smooth_clip(params['Mf'] * self.polynomial_value(X[5], 16) * self.polynomial_value(X[6], 17) - \
+                                  params['Mp'] * self.polynomial_value(X[9], 18))
+
+            dXdt[5] = smooth_clip((params['P0'] + params['Pin']) * self.polynomial_value(X[16], 19) - \
+                                  (params['Sm'] + params['Rw'] + params['Pout']))
+
+            dXdt[6] = smooth_clip((params['R0'] + params['Rin']) * self.polynomial_value(X[16], 20) - \
+                                  (params['Sm'] + params['Rw'] + params['Rout']))
+
+            dXdt[7] = smooth_clip((params['C0'] + params['Cin']) * self.polynomial_value(X[16], 21) - \
+                                  (params['Sm'] + params['Rw'] + params['Cout']))
+
+            dXdt[8] = smooth_clip((params['T0'] + params['Tin']) * self.polynomial_value(X[16], 22) - params['Tout'])
+
+            dXdt[9] = smooth_clip((params['Nr'] + params['Df']) * self.polynomial_value(X[16], 23) - params['Dp'])
+
+            dXdt[10] = smooth_clip(params['DeltaU'] - params['Delta_star_U'] * self.polynomial_value(X[4], 24))
+
+            dXdt[11] = smooth_clip(params['DeltaI'] - params['Delta_star_I'] * self.polynomial_value(X[4], 25))
+
+            dXdt[12] = smooth_clip(params['DeltaT'] - params['Delta_star_T'] * self.polynomial_value(X[4], 26))
+
+            dXdt[13] = smooth_clip(params['Tdf'] * self.polynomial_value(X[8], 27) - params['Tdp'])
+
+            dXdt[14] = smooth_clip(params['DeltaPG'] - params['Delta_star_PG'] * self.polynomial_value(X[16], 28))
+
+            dXdt[15] = smooth_clip(params['DeltaPV'] - params['Delta_star_PV'] * self.polynomial_value(X[16], 29))
+
+            dXdt[16] = smooth_clip(params['NTP'] * self.polynomial_value(X[8], 30) - params['Rw'])
+
+            dXdt[17] = smooth_clip(params['Nd'] * self.polynomial_value(X[5], 31) * self.polynomial_value(X[6], 32) * \
+                                   self.polynomial_value(X[7], 33) * self.polynomial_value(X[13], 34) - \
+                                   (params['Ab'] + params['Ld']) * self.polynomial_value(X[0], 35) * self.polynomial_value(X[3], 36))
+
+            # Мягкое ограничение производных для плавности
+            for i in range(18):
+                dXdt[i] = np.clip(dXdt[i], -2, 2) * 0.1  # Уменьшаем скорость изменений
+
             return dXdt
-            
+
         except Exception as e:
             print(f"Ошибка в вычислении производных: {e}")
             return np.zeros(18)
-    
+
     # решение системы дифференциальных уравнений
-    def solve_system(self):        
+    def solve_system(self):
         try:
             # начальные условия из параметров
             X0 = [self.parameters_norm[f"X{i}"] for i in range(1, 19)]
-            
-            # решение системы
+
+            # решение системы с увеличенным временем
             self.solution = solve_ivp(
-                self.system_equations, 
-                [0, 1], 
-                X0, 
-                t_eval=self.time_points, 
+                self.system_equations,
+                [0, 10],  # еще увеличили временной интервал для плавности
+                X0,
+                t_eval=self.time_points,
                 method='RK45',
                 rtol=1e-6,
                 atol=1e-8
             )
-            self.solution.y = np.clip(self.solution.y, 0, None)                        
+
+            # УБИРАЕМ случайные колебания - они создают "пульс"
+            # Вместо этого обеспечиваем плавность через систему уравнений
+            self.solution.y = np.clip(self.solution.y, 0, 1.2)
+
             return self.solution
-            
+
         except Exception as e:
             print(f"Ошибка при решении системы: {e}")
             return []
