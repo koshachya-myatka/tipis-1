@@ -33,7 +33,7 @@ class Calculator2:
             "X18": "Количество балок, сданных ОТК с первого предъявления"
         }
         # временные точки
-        self.time_points = np.linspace(0, 10, 300)
+        self.time_points = np.linspace(0, 1, 300)
         # переменная для решения системы
         self.solution = None
         # диапазоны значений для параметров системы: (мин, макс, кол-во знаков после запятой)
@@ -85,13 +85,13 @@ class Calculator2:
         for const_name, (min_val, max_val, dec_places) in self.constants.items():
             parameters[const_name] = round(random.uniform(min_val, max_val), dec_places)
 
-        # коэффициенты для полиномиальных функций f1-f36 с увеличенными значениями
+        # коэффициенты для полиномиальных функций f1-f36 с ЗНАЧИТЕЛЬНО увеличенными значениями
         for i in range(1, 37):
-            # Увеличиваем диапазоны коэффициентов для более нелинейного поведения
-            parameters[f"f{i}_a3"] = round(random.uniform(-0.5, 0.5), 6)  # увеличили диапазон
-            parameters[f"f{i}_a2"] = round(random.uniform(-0.8, 0.8), 6)  # увеличили диапазон
-            parameters[f"f{i}_a1"] = round(random.uniform(0.5, 2.0), 6)   # увеличили диапазон
-            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 0.8), 6)   # увеличили диапазон
+            # Значительно увеличиваем диапазоны коэффициентов для сильной нелинейности
+            parameters[f"f{i}_a3"] = round(random.uniform(-2.0, 2.0), 6)   # сильно увеличили кубические члены
+            parameters[f"f{i}_a2"] = round(random.uniform(-3.0, 3.0), 6)   # сильно увеличили квадратичные члены
+            parameters[f"f{i}_a1"] = round(random.uniform(1.0, 5.0), 6)    # увеличили линейные члены
+            parameters[f"f{i}_a0"] = round(random.uniform(0.5, 2.0), 6)    # увеличили константы
 
         return parameters
 
@@ -124,14 +124,14 @@ class Calculator2:
             params_norm[const_name] = (params_norm[const_name] - min_val) / (max_val - min_val)   
         
         return params_norm
-    
+
     # вычисление значения полинома f_n(x) = a3*x^3 + a2*x^2 + a1*x + a0
-    def polynomial_value(self, x, fn_index):   
+    def polynomial_value(self, x, fn_index):
         a3 = self.parameters.get(f"f{fn_index}_a3", 0)
         a2 = self.parameters.get(f"f{fn_index}_a2", 0)
         a1 = self.parameters.get(f"f{fn_index}_a1", 0)
         a0 = self.parameters.get(f"f{fn_index}_a0", 0)
-        
+
         return a3*x**3 + a2*x**2 + a1*x + a0
 
     # система дифференциальных уравнений
@@ -209,10 +209,10 @@ class Calculator2:
             # начальные условия из параметров
             X0 = [self.parameters_norm[f"X{i}"] for i in range(1, 19)]
 
-            # решение системы с увеличенным временем
+            # решение системы с правильным временным интервалом
             self.solution = solve_ivp(
                 self.system_equations,
-                [0, 10],  # еще увеличили временной интервал для плавности
+                [0, 1],  # изменено с 10 на 1
                 X0,
                 t_eval=self.time_points,
                 method='RK45',

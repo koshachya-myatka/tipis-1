@@ -14,7 +14,7 @@
     <div class="tables-container">
         <!-- Таблица параметров X1-X18 -->
         <div class="table-wrapper">
-            <h3 class="table-title">Параметры системы</h3>
+            <h3 class="table-title">Начальные условия</h3>
             <div class="scrollable-table">
                 <table>
                     <thead>
@@ -29,7 +29,7 @@
                     <tbody>
                         {% for i in range(1, 19) %}
                         <tr>
-                            <td>X{{ i }}</td>
+                            <td>X<sub>{{ i }}</sub></td>
                             <td>
                                 {% if i == 1 %}Количество забракованных балок на 100 единиц продукции
                                 {% elif i == 2 %}Численность операторов РТК
