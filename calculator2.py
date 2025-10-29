@@ -65,64 +65,75 @@ class Calculator2:
         self.parameters = self.generate_valid_parameters()
         self.parameters_norm = {}
 
-    # генерация словаря случайных значений параметров системы   
     def generate_system_parameters(self):
         parameters = {}
 
-        # параметры X1-X18
+        # параметры X1-X18 (только основные значения, без min/max)
         for i in range(1, 19):
             param_name = f"X{i}"
             min_r, max_r, dec = self.pR[param_name]
-            base_min_val = min_r + ((max_r - min_r) * 0.05)
-            base_value = round(random.uniform(base_min_val, max_r), dec)
-            min_value = round(random.uniform(min_r, base_value), dec) if base_value > min_r else min_r
-            max_value = round(random.uniform(base_value, max_r), dec) if base_value < max_r else max_r
-            parameters[param_name] = base_value
-            parameters[f"{param_name}_min"] = min_value
-            parameters[f"{param_name}_max"] = max_value
 
-        # константы
+            # Генерируем только основное значение
+            base_value = round(random.uniform(min_r, max_r), dec)
+
+            # Проверка и приведение в допустимый диапазон
+            base_value = min(max(base_value, min_r), max_r)
+
+            parameters[param_name] = base_value
+            # Убрали генерацию X{i}_min и X{i}_max
+
+        # константы (остается без изменений)
         for const_name, (min_val, max_val, dec_places) in self.constants.items():
             parameters[const_name] = round(random.uniform(min_val, max_val), dec_places)
 
-        # коэффициенты для полиномиальных функций f1-f36 с ЗНАЧИТЕЛЬНО увеличенными значениями
+        # коэффициенты для полиномиальных функций f1-f36 (остается без изменений)
         for i in range(1, 37):
-            # Значительно увеличиваем диапазоны коэффициентов для сильной нелинейности
-            parameters[f"f{i}_a3"] = round(random.uniform(-2.0, 2.0), 6)   # сильно увеличили кубические члены
-            parameters[f"f{i}_a2"] = round(random.uniform(-3.0, 3.0), 6)   # сильно увеличили квадратичные члены
-            parameters[f"f{i}_a1"] = round(random.uniform(1.0, 5.0), 6)    # увеличили линейные члены
-            parameters[f"f{i}_a0"] = round(random.uniform(0.5, 2.0), 6)    # увеличили константы
+            parameters[f"f{i}_a3"] = round(random.uniform(-2.0, 2.0), 6)
+            parameters[f"f{i}_a2"] = round(random.uniform(-3.0, 3.0), 6)
+            parameters[f"f{i}_a1"] = round(random.uniform(1.0, 5.0), 6)
+            parameters[f"f{i}_a0"] = round(random.uniform(0.5, 2.0), 6)
 
         return parameters
 
+
     def generate_valid_parameters(self):
         # максимум 10 попыток
-        for _ in range(10):  
+        for _ in range(10):
             params = self.generate_system_parameters()
             params_norm = self._get_normalized(params)
             self.parameters = params
             self.parameters_norm = params_norm
-            try:                
+            try:
                 self.solve_system()
-                if np.all(self.solution.y >= -1e-6):                    
+                if np.all(self.solution.y >= -1e-6):
                     return params
             except:
                 continue
         raise ValueError("Не удалось сгенерировать физически корректные параметры после 10 попыток")
-    
+
     def _get_normalized(self, params):
-        params_norm = params.copy()        
+        params_norm = params.copy()
+
         # Нормализация значений переменных от 0 до 1
         for i in range(18):
             param_name = f"X{i+1}"
             min_val, max_val, _ = self.pR[param_name]
-            params_norm[param_name] = (params_norm[param_name] - min_val) / (max_val - min_val)
-            params_norm[f"{param_name}_min"] = (params_norm[f"{param_name}_min"] - min_val) / (max_val - min_val)
-            params_norm[f"{param_name}_max"] = (params_norm[f"{param_name}_max"] - min_val) / (max_val - min_val)
 
+            # Нормализуем только основное значение (min/max больше не используются)
+            if param_name in params_norm:
+                params_norm[param_name] = (params_norm[param_name] - min_val) / (max_val - min_val)
+
+            # Удаляем min/max значения если они есть (они больше не нужны)
+            if f"{param_name}_min" in params_norm:
+                del params_norm[f"{param_name}_min"]
+            if f"{param_name}_max" in params_norm:
+                del params_norm[f"{param_name}_max"]
+
+        # Нормализация констант
         for const_name, (min_val, max_val, _) in self.constants.items():
-            params_norm[const_name] = (params_norm[const_name] - min_val) / (max_val - min_val)   
-        
+            if const_name in params_norm:
+                params_norm[const_name] = (params_norm[const_name] - min_val) / (max_val - min_val)
+
         return params_norm
 
     # вычисление значения полинома f_n(x) = a3*x^3 + a2*x^2 + a1*x + a0
@@ -230,7 +241,7 @@ class Calculator2:
             print(f"Ошибка при решении системы: {e}")
             return []
 
-    def plot_time_series(self):           
+    def plot_time_series(self):
         if self.solution is None:
             self.solve_system()
         # создаем график, состоящий из трех подграфиков
@@ -248,18 +259,18 @@ class Calculator2:
                 y = self.solution.y[i]
                 # считаем функцию для кривой Хn  
                 coeffs = np.polyfit(t, y, deg=3)
-                a3, a2, a1, a0 = coeffs              
+                a3, a2, a1, a0 = coeffs
                 func_descriptions.append(
                     f"X{i+1}(t) = {round(a3, 6)}·t³ + {round(a2, 6)}·t² + {round(a1, 6)}·t + {round(a0, 6)}"
-                )   
+                )
                 # рисуем кривую, обрезаем ее значение, если оно стало больше 1.15 по у, и подписываем ее
                 y = [val for val in self.solution.y[i] if val <= 1.15]
                 y_label = self.names[f'X{i+1}']
                 ax.plot(self.solution.t[:len(y)], y, label=f'X{i+1} ({y_label})', color=colors[i], linewidth=2)
                 if len(y) > 0:
                     ax.text(self.solution.t[len(y)-1]+0.015, y[-1]+0.015, f'X{i+1}', color="black",
-                        fontsize=10, va='center')
-                    
+                            fontsize=10, va='center')
+
             ax.set_title(f'X{start+1}–X{end}', fontsize=14)
             ax.set_xlabel('Время', fontsize=10)
             if ax_idx == 0:
@@ -276,12 +287,12 @@ class Calculator2:
 
         # общая легенда со всеми X1–X18, в несколько столбцов
         fig.legend(handles, labels,
-                loc='upper center',
-                ncol=1,                
-                fontsize=11,
-                frameon=True,
-                bbox_to_anchor=(0.5, 1.75)) 
-        
+                   loc='upper center',
+                   ncol=1,
+                   fontsize=11,
+                   frameon=True,
+                   bbox_to_anchor=(0.5, 1.75))
+
         # выводим текст под графиками
         func_text = "\n".join(func_descriptions)
         fig.text(0.5, -0.08, func_text, ha='center', va='top', fontsize=12)
@@ -294,7 +305,7 @@ class Calculator2:
         img_b64 = base64.b64encode(buf.getvalue()).decode()
         plt.close(fig)
         return img_b64
-    
+
     # отрисовка 5 лепестковых диаграмм
     def plot_radar_charts(self):
         if self.solution is None:
@@ -339,7 +350,7 @@ class Calculator2:
         radar_b64 = base64.b64encode(radar_buffer.getvalue()).decode()
         plt.close(fig)
         return radar_b64
-    
+
     # построение всех графиков
     def plot_all_results(self):
         self.solve_system()

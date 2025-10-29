@@ -1,8 +1,5 @@
 # pip install flask
 from flask import Flask, request, render_template, jsonify
-import os
-import io
-import base64
 
 from calculator import Calculator
 from calculator2 import Calculator2
@@ -20,20 +17,29 @@ def init_calculator():
     return CALCULATOR.parameters
 
 
-# обновление параметров калькулятора из данных формы
-def update_calculator_from_form(form_data):
-    global CALCULATOR
-    CALCULATOR.parameters = {}
+def update_calculator2_from_form(form_data):
+    global CALCULATOR2
+    CALCULATOR2.parameters = {}
     for key, value in form_data.items():
         if value and value != "":
             try:
                 if "." in value:
-                    CALCULATOR.parameters[key] = float(value)
+                    CALCULATOR2.parameters[key] = float(value)
                 else:
-                    CALCULATOR.parameters[key] = int(value)
+                    CALCULATOR2.parameters[key] = int(value)
             except ValueError:
-                CALCULATOR.parameters[key] = value
-    return CALCULATOR.parameters
+                CALCULATOR2.parameters[key] = value
+
+    # Убедимся, что все необходимые X параметры присутствуют
+    for i in range(1, 19):
+        param_name = f"X{i}"
+        if param_name not in CALCULATOR2.parameters:
+            # Если параметр отсутствует, установим значение по умолчанию
+            min_val, max_val, _ = CALCULATOR2.pR[param_name]
+            CALCULATOR2.parameters[param_name] = (min_val + max_val) / 2
+
+    CALCULATOR2.parameters_norm = CALCULATOR2._get_normalized(CALCULATOR2.parameters)
+    return CALCULATOR2.parameters
 
 
 # главная страница и внедрение модели калькулятора

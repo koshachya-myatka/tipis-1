@@ -9,503 +9,511 @@
 </head>
 
 <body>
-    <h1>Робототехнические комплексы</h1>
-    <div id="messages"></div>
-    <div class="tables-container">
-        <!-- Таблица параметров X1-X18 -->
-        <div class="table-wrapper">
-            <h3 class="table-title">Начальные условия</h3>
-            <div class="scrollable-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Параметр</th>
-                            <th>Название</th>
-                            <th>Начальное</th>
-                            <th>Мин.</th>
-                            <th>Макс.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for i in range(1, 19) %}
-                        <tr>
-                            <td>X<sub>{{ i }}</sub></td>
-                            <td>
-                                {% if i == 1 %}Количество забракованных балок на 100 единиц продукции
-                                {% elif i == 2 %}Численность операторов РТК
-                                {% elif i == 3 %}Среднее количество остановок РТК на один цикл
-                                {% elif i == 4 %}Средняя длина дефектных сварных швов на 1 единицу продукции
-                                {% elif i == 5 %}Выполненные работы по плановому обслуживанию РТК
-                                {% elif i == 6 %}Численность программистов
-                                {% elif i == 7 %}Численность наладчиков сварочного оборудования
-                                {% elif i == 8 %}Численность контролеров ОТК
-                                {% elif i == 9 %}Численность цеховых технологов
-                                {% elif i == 10 %}Количество дней просрочки поставки материалов и запчастей для ремонта
-                                РТК
-                                {% elif i == 11 %}Среднее отклонение напряжения сварочной дуги
-                                {% elif i == 12 %}Среднее отклонение тока на двигателе подающего блока
-                                {% elif i == 13 %}Среднее отклонение манипулятора от программной траектории
-                                {% elif i == 14 %}Наличие на рабочих местах необходимой технологической документации
-                                {% elif i == 15 %}Отклонение давления защитного газа
-                                {% elif i == 16 %}Отклонение давления сжатого воздуха
-                                {% elif i == 17 %}План производства на заданный период в единицах продукции
-                                {% elif i == 18 %}Количество балок, сданных ОТК с первого предъявления
-                                {% endif %}
-                            </td>
-                            <td><input type="number" min="0" id="X{{ i }}" value="{{ parameters.get('X' ~ i, '') }}">
-                            </td>
-                            <td><input type="number" min="0" id="X{{ i }}_min"
-                                    value="{{ parameters.get('X' ~ i ~ '_min', '') }}"></td>
-                            <td><input type="number" min="0" id="X{{ i }}_max"
-                                    value="{{ parameters.get('X' ~ i ~ '_max', '') }}"></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Таблица констант -->
-        <div class="table-wrapper">
-            <h3 class="table-title">Константы системы</h3>
-            <div class="scrollable-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Константа</th>
-                            <th>Название</th>
-                            <th>Значение</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% set constants = [
-                        ('O0', 'O0', 'Численность операторов РТК на начало периода'),
-                        ('Oin', 'Oin', 'Численность принятых операторов РТК за период'),
-                        ('Oout', 'Oout', 'Численность уволенных операторов РТК за период'),
-                        ('Sm', 'Sm', 'Сменность работы производства'),
-                        ('Rw', 'Rw', 'Количество РТК, задействованных в производственном процессе'),
-                        ('Nst', 'Nst', 'Количество остановок РТК за период'),
-                        ('S_star', 'S*', 'Допустимое количество остановок РТК за один сварочный цикл'),
-                        ('Ld', 'Ld', 'Общая длина дефектных швов за период'),
-                        ('L_star', 'L*', 'Расчетная длина дефектных швов за период'),
-                        ('Mf', 'Mf', 'Количество выполненных мероприятий из графика ППР по обслуживанию РТК'),
-                        ('Mp', 'Mp', 'Количество запланированных мероприятий из графика ППР по обслуживанию РТК'),
-                        ('P0', 'P0', 'Численность программистов на начало периода'),
-                        ('Pin', 'Pin', 'Численность принятых программистов за период'),
-                        ('Pout', 'Pout', 'Численность уволенных программистов за период'),
-                        ('R0', 'R0', 'Численность наладчиков сварочного оборудования на начало периода'),
-                        ('Rin', 'Rin', 'Численность принятых наладчиков сварочного оборудования за период'),
-                        ('Rout', 'Rout', 'Численность уволенных наладчиков сварочного оборудования за период'),
-                        ('C0', 'C0', 'Численность контролеров ОТК на начало периода'),
-                        ('Cin', 'Cin', 'Численность принятых контролеров ОТК за период'),
-                        ('Cout', 'Cout', 'Численность уволенных контролеров ОТК за период'),
-                        ('T0', 'T0', 'Численность технологов на начало периода'),
-                        ('Tin', 'Tin', 'Численность принятых технологов за период'),
-                        ('Tout', 'Tout', 'Численность уволенных технологов за период'),
-                        ('Nr', 'Nr', 'Длительность ремонта РТК в днях'),
-                        ('Df', 'Df', 'Фактический срок поставки запчастей и материалов для ремонта РТК'),
-                        ('Dp', 'Dp', 'Запланированный срок поставки запчастей и материалов для ремонта РТК'),
-                        ('DeltaU', 'ΔU', 'Среднее отклонение напряжения сварочной дуги от номинального значения'),
-                        ('Delta_star_U', 'Δ*U', 'Допустимое отклонение напряжения сварочной дуги от номинального
-                        значения'),
-                        ('DeltaI', 'ΔI', 'Среднее отклонение тока на двигателе подающего механизма от номинального
-                        значения'),
-                        ('Delta_star_I', 'Δ*I', 'Допустимое отклонение тока на двигателе подающего механизма от
-                        номинального значения'),
-                        ('DeltaT', 'ΔT', 'Среднее отклонение манипулятора от запрограммированной траектории'),
-                        ('Delta_star_T', 'Δ*T', 'Допустимое манипулятора от запрограммированной траектории'),
-                        ('Tdf', 'Tdf', 'Фактическое количество документов по технологическому процессу'),
-                        ('Tdp', 'Tdp', 'Необходимое количество документов по технологическому процессу'),
-                        ('DeltaPG', 'ΔRG', 'Среднее отклонение давления защитного газа'),
-                        ('Delta_star_PG', 'Δ*PG', 'Допустимое отклонение давления защитного газа'),
-                        ('DeltaPV', 'ΔPV', 'Среднее отклонение давления сжатого воздуха'),
-                        ('Delta_star_PV', 'Δ*PV', 'Допустимое отклонение давления сжатого воздуха'),
-                        ('NTP', 'Ntp', 'Количество балок, собранных в соответствии с технологическим процессом'),
-                        ('Nd', 'Nd', 'Количество балок, сданных с 1-го предъявления'),
-                        ('Ab', 'Ab', 'Количество актов о несоответствующей продукции за период')
-                        ] %}
-
-                        {% for const_name, const_symbol, description in constants %}
-                        <tr>
-                            <td>{{ const_symbol }}</td>
-                            <td>{{ description }}</td>
-                            <td><input type="number" min="1" id="{{ const_name }}" placeholder="1.0"
-                                    value="{{ parameters.get(const_name, '') }}"></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Таблица полиномов f1-f36 -->
-        <div class="table-wrapper">
-            <h3 class="table-title">Внутренние функции</h3>
-            <div class="scrollable-table">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Функция</th>
-                        <th>Формула</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr><td>f1(X3)</td><td class="formula-row">f1 = <input type="number" class="formula-input" id="f1_a3" placeholder="a3" value="{{ parameters.get('f1_a3', '') }}"> * X3³ + <input type="number" class="formula-input" id="f1_a2" placeholder="a2" value="{{ parameters.get('f1_a2', '') }}"> * X3² + <input type="number" class="formula-input" id="f1_a1" placeholder="a1" value="{{ parameters.get('f1_a1', '') }}"> * X3 + <input type="number" class="formula-input" id="f1_a0" placeholder="a0" value="{{ parameters.get('f1_a0', '') }}"></td></tr>
-                    <tr><td>f2(X11)</td><td class="formula-row">f2 = <input type="number" class="formula-input" id="f2_a3" placeholder="a3" value="{{ parameters.get('f2_a3', '') }}"> * X11³ + <input type="number" class="formula-input" id="f2_a2" placeholder="a2" value="{{ parameters.get('f2_a2', '') }}"> * X11² + <input type="number" class="formula-input" id="f2_a1" placeholder="a1" value="{{ parameters.get('f2_a1', '') }}"> * X11 + <input type="number" class="formula-input" id="f2_a0" placeholder="a0" value="{{ parameters.get('f2_a0', '') }}"></td></tr>
-                    <tr><td>f3(X12)</td><td class="formula-row">f3 = <input type="number" class="formula-input" id="f3_a3" placeholder="a3" value="{{ parameters.get('f3_a3', '') }}"> * X12³ + <input type="number" class="formula-input" id="f3_a2" placeholder="a2" value="{{ parameters.get('f3_a2', '') }}"> * X12² + <input type="number" class="formula-input" id="f3_a1" placeholder="a1" value="{{ parameters.get('f3_a1', '') }}"> * X12 + <input type="number" class="formula-input" id="f3_a0" placeholder="a0" value="{{ parameters.get('f3_a0', '') }}"></td></tr>
-                    <tr><td>f4(X13)</td><td class="formula-row">f4 = <input type="number" class="formula-input" id="f4_a3" placeholder="a3" value="{{ parameters.get('f4_a3', '') }}"> * X13³ + <input type="number" class="formula-input" id="f4_a2" placeholder="a2" value="{{ parameters.get('f4_a2', '') }}"> * X13² + <input type="number" class="formula-input" id="f4_a1" placeholder="a1" value="{{ parameters.get('f4_a1', '') }}"> * X13 + <input type="number" class="formula-input" id="f4_a0" placeholder="a0" value="{{ parameters.get('f4_a0', '') }}"></td></tr>
-                    <tr><td>f5(X2)</td><td class="formula-row">f5 = <input type="number" class="formula-input" id="f5_a3" placeholder="a3" value="{{ parameters.get('f5_a3', '') }}"> * X2³ + <input type="number" class="formula-input" id="f5_a2" placeholder="a2" value="{{ parameters.get('f5_a2', '') }}"> * X2² + <input type="number" class="formula-input" id="f5_a1" placeholder="a1" value="{{ parameters.get('f5_a1', '') }}"> * X2 + <input type="number" class="formula-input" id="f5_a0" placeholder="a0" value="{{ parameters.get('f5_a0', '') }}"></td></tr>
-                    <tr><td>f6(X8)</td><td class="formula-row">f6 = <input type="number" class="formula-input" id="f6_a3" placeholder="a3" value="{{ parameters.get('f6_a3', '') }}"> * X8³ + <input type="number" class="formula-input" id="f6_a2" placeholder="a2" value="{{ parameters.get('f6_a2', '') }}"> * X8² + <input type="number" class="formula-input" id="f6_a1" placeholder="a1" value="{{ parameters.get('f6_a1', '') }}"> * X8 + <input type="number" class="formula-input" id="f6_a0" placeholder="a0" value="{{ parameters.get('f6_a0', '') }}"></td></tr>
-                    <tr><td>f7(X17)</td><td class="formula-row">f7 = <input type="number" class="formula-input" id="f7_a3" placeholder="a3" value="{{ parameters.get('f7_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f7_a2" placeholder="a2" value="{{ parameters.get('f7_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f7_a1" placeholder="a1" value="{{ parameters.get('f7_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f7_a0" placeholder="a0" value="{{ parameters.get('f7_a0', '') }}"></td></tr>
-                    <tr><td>f8(X10)</td><td class="formula-row">f8 = <input type="number" class="formula-input" id="f8_a3" placeholder="a3" value="{{ parameters.get('f8_a3', '') }}"> * X10³ + <input type="number" class="formula-input" id="f8_a2" placeholder="a2" value="{{ parameters.get('f8_a2', '') }}"> * X10² + <input type="number" class="formula-input" id="f8_a1" placeholder="a1" value="{{ parameters.get('f8_a1', '') }}"> * X10 + <input type="number" class="formula-input" id="f8_a0" placeholder="a0" value="{{ parameters.get('f8_a0', '') }}"></td></tr>
-                    <tr><td>f9(X15)</td><td class="formula-row">f9 = <input type="number" class="formula-input" id="f9_a3" placeholder="a3" value="{{ parameters.get('f9_a3', '') }}"> * X15³ + <input type="number" class="formula-input" id="f9_a2" placeholder="a2" value="{{ parameters.get('f9_a2', '') }}"> * X15² + <input type="number" class="formula-input" id="f9_a1" placeholder="a1" value="{{ parameters.get('f9_a1', '') }}"> * X15 + <input type="number" class="formula-input" id="f9_a0" placeholder="a0" value="{{ parameters.get('f9_a0', '') }}"></td></tr>
-                    <tr><td>f10(X16)</td><td class="formula-row">f10 = <input type="number" class="formula-input" id="f10_a3" placeholder="a3" value="{{ parameters.get('f10_a3', '') }}"> * X16³ + <input type="number" class="formula-input" id="f10_a2" placeholder="a2" value="{{ parameters.get('f10_a2', '') }}"> * X16² + <input type="number" class="formula-input" id="f10_a1" placeholder="a1" value="{{ parameters.get('f10_a1', '') }}"> * X16 + <input type="number" class="formula-input" id="f10_a0" placeholder="a0" value="{{ parameters.get('f10_a0', '') }}"></td></tr>
-                    <tr><td>f11(X2)</td><td class="formula-row">f11 = <input type="number" class="formula-input" id="f11_a3" placeholder="a3" value="{{ parameters.get('f11_a3', '') }}"> * X2³ + <input type="number" class="formula-input" id="f11_a2" placeholder="a2" value="{{ parameters.get('f11_a2', '') }}"> * X2² + <input type="number" class="formula-input" id="f11_a1" placeholder="a1" value="{{ parameters.get('f11_a1', '') }}"> * X2 + <input type="number" class="formula-input" id="f11_a0" placeholder="a0" value="{{ parameters.get('f11_a0', '') }}"></td></tr>
-                    <tr><td>f12(X17)</td><td class="formula-row">f12 = <input type="number" class="formula-input" id="f12_a3" placeholder="a3" value="{{ parameters.get('f12_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f12_a2" placeholder="a2" value="{{ parameters.get('f12_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f12_a1" placeholder="a1" value="{{ parameters.get('f12_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f12_a0" placeholder="a0" value="{{ parameters.get('f12_a0', '') }}"></td></tr>
-                    <tr><td>f13(X15)</td><td class="formula-row">f13 = <input type="number" class="formula-input" id="f13_a3" placeholder="a3" value="{{ parameters.get('f13_a3', '') }}"> * X15³ + <input type="number" class="formula-input" id="f13_a2" placeholder="a2" value="{{ parameters.get('f13_a2', '') }}"> * X15² + <input type="number" class="formula-input" id="f13_a1" placeholder="a1" value="{{ parameters.get('f13_a1', '') }}"> * X15 + <input type="number" class="formula-input" id="f13_a0" placeholder="a0" value="{{ parameters.get('f13_a0', '') }}"></td></tr>
-                    <tr><td>f14(X16)</td><td class="formula-row">f14 = <input type="number" class="formula-input" id="f14_a3" placeholder="a3" value="{{ parameters.get('f14_a3', '') }}"> * X16³ + <input type="number" class="formula-input" id="f14_a2" placeholder="a2" value="{{ parameters.get('f14_a2', '') }}"> * X16² + <input type="number" class="formula-input" id="f14_a1" placeholder="a1" value="{{ parameters.get('f14_a1', '') }}"> * X16 + <input type="number" class="formula-input" id="f14_a0" placeholder="a0" value="{{ parameters.get('f14_a0', '') }}"></td></tr>
-                    <tr><td>f15(X2)</td><td class="formula-row">f15 = <input type="number" class="formula-input" id="f15_a3" placeholder="a3" value="{{ parameters.get('f15_a3', '') }}"> * X2³ + <input type="number" class="formula-input" id="f15_a2" placeholder="a2" value="{{ parameters.get('f15_a2', '') }}"> * X2² + <input type="number" class="formula-input" id="f15_a1" placeholder="a1" value="{{ parameters.get('f15_a1', '') }}"> * X2 + <input type="number" class="formula-input" id="f15_a0" placeholder="a0" value="{{ parameters.get('f15_a0', '') }}"></td></tr>
-                    <tr><td>f16(X6)</td><td class="formula-row">f16 = <input type="number" class="formula-input" id="f16_a3" placeholder="a3" value="{{ parameters.get('f16_a3', '') }}"> * X6³ + <input type="number" class="formula-input" id="f16_a2" placeholder="a2" value="{{ parameters.get('f16_a2', '') }}"> * X6² + <input type="number" class="formula-input" id="f16_a1" placeholder="a1" value="{{ parameters.get('f16_a1', '') }}"> * X6 + <input type="number" class="formula-input" id="f16_a0" placeholder="a0" value="{{ parameters.get('f16_a0', '') }}"></td></tr>
-                    <tr><td>f17(X7)</td><td class="formula-row">f17 = <input type="number" class="formula-input" id="f17_a3" placeholder="a3" value="{{ parameters.get('f17_a3', '') }}"> * X7³ + <input type="number" class="formula-input" id="f17_a2" placeholder="a2" value="{{ parameters.get('f17_a2', '') }}"> * X7² + <input type="number" class="formula-input" id="f17_a1" placeholder="a1" value="{{ parameters.get('f17_a1', '') }}"> * X7 + <input type="number" class="formula-input" id="f17_a0" placeholder="a0" value="{{ parameters.get('f17_a0', '') }}"></td></tr>
-                    <tr><td>f18(X10)</td><td class="formula-row">f18 = <input type="number" class="formula-input" id="f18_a3" placeholder="a3" value="{{ parameters.get('f18_a3', '') }}"> * X10³ + <input type="number" class="formula-input" id="f18_a2" placeholder="a2" value="{{ parameters.get('f18_a2', '') }}"> * X10² + <input type="number" class="formula-input" id="f18_a1" placeholder="a1" value="{{ parameters.get('f18_a1', '') }}"> * X10 + <input type="number" class="formula-input" id="f18_a0" placeholder="a0" value="{{ parameters.get('f18_a0', '') }}"></td></tr>
-                    <tr><td>f19(X17)</td><td class="formula-row">f19 = <input type="number" class="formula-input" id="f19_a3" placeholder="a3" value="{{ parameters.get('f19_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f19_a2" placeholder="a2" value="{{ parameters.get('f19_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f19_a1" placeholder="a1" value="{{ parameters.get('f19_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f19_a0" placeholder="a0" value="{{ parameters.get('f19_a0', '') }}"></td></tr>
-                    <tr><td>f20(X17)</td><td class="formula-row">f20 = <input type="number" class="formula-input" id="f20_a3" placeholder="a3" value="{{ parameters.get('f20_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f20_a2" placeholder="a2" value="{{ parameters.get('f20_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f20_a1" placeholder="a1" value="{{ parameters.get('f20_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f20_a0" placeholder="a0" value="{{ parameters.get('f20_a0', '') }}"></td></tr>
-                    <tr><td>f21(X17)</td><td class="formula-row">f21 = <input type="number" class="formula-input" id="f21_a3" placeholder="a3" value="{{ parameters.get('f21_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f21_a2" placeholder="a2" value="{{ parameters.get('f21_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f21_a1" placeholder="a1" value="{{ parameters.get('f21_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f21_a0" placeholder="a0" value="{{ parameters.get('f21_a0', '') }}"></td></tr>
-                    <tr><td>f22(X17)</td><td class="formula-row">f22 = <input type="number" class="formula-input" id="f22_a3" placeholder="a3" value="{{ parameters.get('f22_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f22_a2" placeholder="a2" value="{{ parameters.get('f22_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f22_a1" placeholder="a1" value="{{ parameters.get('f22_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f22_a0" placeholder="a0" value="{{ parameters.get('f22_a0', '') }}"></td></tr>
-                    <tr><td>f23(X17)</td><td class="formula-row">f23 = <input type="number" class="formula-input" id="f23_a3" placeholder="a3" value="{{ parameters.get('f23_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f23_a2" placeholder="a2" value="{{ parameters.get('f23_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f23_a1" placeholder="a1" value="{{ parameters.get('f23_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f23_a0" placeholder="a0" value="{{ parameters.get('f23_a0', '') }}"></td></tr>
-                    <tr><td>f24(X5)</td><td class="formula-row">f24 = <input type="number" class="formula-input" id="f24_a3" placeholder="a3" value="{{ parameters.get('f24_a3', '') }}"> * X5³ + <input type="number" class="formula-input" id="f24_a2" placeholder="a2" value="{{ parameters.get('f24_a2', '') }}"> * X5² + <input type="number" class="formula-input" id="f24_a1" placeholder="a1" value="{{ parameters.get('f24_a1', '') }}"> * X5 + <input type="number" class="formula-input" id="f24_a0" placeholder="a0" value="{{ parameters.get('f24_a0', '') }}"></td></tr>
-                    <tr><td>f25(X5)</td><td class="formula-row">f25 = <input type="number" class="formula-input" id="f25_a3" placeholder="a3" value="{{ parameters.get('f25_a3', '') }}"> * X5³ + <input type="number" class="formula-input" id="f25_a2" placeholder="a2" value="{{ parameters.get('f25_a2', '') }}"> * X5² + <input type="number" class="formula-input" id="f25_a1" placeholder="a1" value="{{ parameters.get('f25_a1', '') }}"> * X5 + <input type="number" class="formula-input" id="f25_a0" placeholder="a0" value="{{ parameters.get('f25_a0', '') }}"></td></tr>
-                    <tr><td>f26(X5)</td><td class="formula-row">f26 = <input type="number" class="formula-input" id="f26_a3" placeholder="a3" value="{{ parameters.get('f26_a3', '') }}"> * X5³ + <input type="number" class="formula-input" id="f26_a2" placeholder="a2" value="{{ parameters.get('f26_a2', '') }}"> * X5² + <input type="number" class="formula-input" id="f26_a1" placeholder="a1" value="{{ parameters.get('f26_a1', '') }}"> * X5 + <input type="number" class="formula-input" id="f26_a0" placeholder="a0" value="{{ parameters.get('f26_a0', '') }}"></td></tr>
-                    <tr><td>f27(X9)</td><td class="formula-row">f27 = <input type="number" class="formula-input" id="f27_a3" placeholder="a3" value="{{ parameters.get('f27_a3', '') }}"> * X9³ + <input type="number" class="formula-input" id="f27_a2" placeholder="a2" value="{{ parameters.get('f27_a2', '') }}"> * X9² + <input type="number" class="formula-input" id="f27_a1" placeholder="a1" value="{{ parameters.get('f27_a1', '') }}"> * X9 + <input type="number" class="formula-input" id="f27_a0" placeholder="a0" value="{{ parameters.get('f27_a0', '') }}"></td></tr>
-                    <tr><td>f28(X17)</td><td class="formula-row">f28 = <input type="number" class="formula-input" id="f28_a3" placeholder="a3" value="{{ parameters.get('f28_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f28_a2" placeholder="a2" value="{{ parameters.get('f28_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f28_a1" placeholder="a1" value="{{ parameters.get('f28_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f28_a0" placeholder="a0" value="{{ parameters.get('f28_a0', '') }}"></td></tr>
-                    <tr><td>f29(X17)</td><td class="formula-row">f29 = <input type="number" class="formula-input" id="f29_a3" placeholder="a3" value="{{ parameters.get('f29_a3', '') }}"> * X17³ + <input type="number" class="formula-input" id="f29_a2" placeholder="a2" value="{{ parameters.get('f29_a2', '') }}"> * X17² + <input type="number" class="formula-input" id="f29_a1" placeholder="a1" value="{{ parameters.get('f29_a1', '') }}"> * X17 + <input type="number" class="formula-input" id="f29_a0" placeholder="a0" value="{{ parameters.get('f29_a0', '') }}"></td></tr>
-                    <tr><td>f30(X9)</td><td class="formula-row">f30 = <input type="number" class="formula-input" id="f30_a3" placeholder="a3" value="{{ parameters.get('f30_a3', '') }}"> * X9³ + <input type="number" class="formula-input" id="f30_a2" placeholder="a2" value="{{ parameters.get('f30_a2', '') }}"> * X9² + <input type="number" class="formula-input" id="f30_a1" placeholder="a1" value="{{ parameters.get('f30_a1', '') }}"> * X9 + <input type="number" class="formula-input" id="f30_a0" placeholder="a0" value="{{ parameters.get('f30_a0', '') }}"></td></tr>
-                    <tr><td>f31(X6)</td><td class="formula-row">f31 = <input type="number" class="formula-input" id="f31_a3" placeholder="a3" value="{{ parameters.get('f31_a3', '') }}"> * X6³ + <input type="number" class="formula-input" id="f31_a2" placeholder="a2" value="{{ parameters.get('f31_a2', '') }}"> * X6² + <input type="number" class="formula-input" id="f31_a1" placeholder="a1" value="{{ parameters.get('f31_a1', '') }}"> * X6 + <input type="number" class="formula-input" id="f31_a0" placeholder="a0" value="{{ parameters.get('f31_a0', '') }}"></td></tr>
-                    <tr><td>f32(X7)</td><td class="formula-row">f32 = <input type="number" class="formula-input" id="f32_a3" placeholder="a3" value="{{ parameters.get('f32_a3', '') }}"> * X7³ + <input type="number" class="formula-input" id="f32_a2" placeholder="a2" value="{{ parameters.get('f32_a2', '') }}"> * X7² + <input type="number" class="formula-input" id="f32_a1" placeholder="a1" value="{{ parameters.get('f32_a1', '') }}"> * X7 + <input type="number" class="formula-input" id="f32_a0" placeholder="a0" value="{{ parameters.get('f32_a0', '') }}"></td></tr>
-                    <tr><td>f33(X8)</td><td class="formula-row">f33 = <input type="number" class="formula-input" id="f33_a3" placeholder="a3" value="{{ parameters.get('f33_a3', '') }}"> * X8³ + <input type="number" class="formula-input" id="f33_a2" placeholder="a2" value="{{ parameters.get('f33_a2', '') }}"> * X8² + <input type="number" class="formula-input" id="f33_a1" placeholder="a1" value="{{ parameters.get('f33_a1', '') }}"> * X8 + <input type="number" class="formula-input" id="f33_a0" placeholder="a0" value="{{ parameters.get('f33_a0', '') }}"></td></tr>
-                    <tr><td>f34(X14)</td><td class="formula-row">f34 = <input type="number" class="formula-input" id="f34_a3" placeholder="a3" value="{{ parameters.get('f34_a3', '') }}"> * X14³ + <input type="number" class="formula-input" id="f34_a2" placeholder="a2" value="{{ parameters.get('f34_a2', '') }}"> * X14² + <input type="number" class="formula-input" id="f34_a1" placeholder="a1" value="{{ parameters.get('f34_a1', '') }}"> * X14 + <input type="number" class="formula-input" id="f34_a0" placeholder="a0" value="{{ parameters.get('f34_a0', '') }}"></td></tr>
-                    <tr><td>f35(X1)</td><td class="formula-row">f35 = <input type="number" class="formula-input" id="f35_a3" placeholder="a3" value="{{ parameters.get('f35_a3', '') }}"> * X1³ + <input type="number" class="formula-input" id="f35_a2" placeholder="a2" value="{{ parameters.get('f35_a2', '') }}"> * X1² + <input type="number" class="formula-input" id="f35_a1" placeholder="a1" value="{{ parameters.get('f35_a1', '') }}"> * X1 + <input type="number" class="formula-input" id="f35_a0" placeholder="a0" value="{{ parameters.get('f35_a0', '') }}"></td></tr>
-                    <tr><td>f36(X4)</td><td class="formula-row">f36 = <input type="number" class="formula-input" id="f36_a3" placeholder="a3" value="{{ parameters.get('f36_a3', '') }}"> * X4³ + <input type="number" class="formula-input" id="f36_a2" placeholder="a2" value="{{ parameters.get('f36_a2', '') }}"> * X4² + <input type="number" class="formula-input" id="f36_a1" placeholder="a1" value="{{ parameters.get('f36_a1', '') }}"> * X4 + <input type="number" class="formula-input" id="f36_a0" placeholder="a0" value="{{ parameters.get('f36_a0', '') }}"></td></tr>
-                    </tbody>
-                </table>
-            </div>
+<h1>Робототехнические комплексы</h1>
+<div id="messages"></div>
+<div class="tables-container">
+    <!-- Таблица параметров X1-X18 -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Начальные условия</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Параметр</th>
+                    <th>Название</th>
+                    <th>Начальное</th>
+                    <th>Мин.</th>
+                    <th>Макс.</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for i in range(1, 19) %}
+                {% set ranges = {
+                'X1': (0, 10), 'X2': (0, 8), 'X3': (0, 20), 'X4': (0, 3), 'X5': (0, 1),
+                'X6': (0, 3), 'X7': (0, 4), 'X8': (0, 2), 'X9': (0, 1), 'X10': (0, 30),
+                'X11': (0, 5), 'X12': (0, 2), 'X13': (0, 5), 'X14': (0, 1),
+                'X15': (0, 2), 'X16': (0, 3), 'X17': (0, 180), 'X18': (0, 360)
+                } %}
+                <tr>
+                    <td>X<sub>{{ i }}</sub></td>
+                    <td>
+                        {% if i == 1 %}Количество забракованных балок на 100 единиц продукции
+                        {% elif i == 2 %}Численность операторов РТК
+                        {% elif i == 3 %}Среднее количество остановок РТК на один цикл
+                        {% elif i == 4 %}Средняя длина дефектных сварных швов на 1 единицу продукции
+                        {% elif i == 5 %}Выполненные работы по плановому обслуживанию РТК
+                        {% elif i == 6 %}Численность программистов
+                        {% elif i == 7 %}Численность наладчиков сварочного оборудования
+                        {% elif i == 8 %}Численность контролеров ОТК
+                        {% elif i == 9 %}Численность цеховых технологов
+                        {% elif i == 10 %}Количество дней просрочки поставки материалов и запчастей для ремонта РТК
+                        {% elif i == 11 %}Среднее отклонение напряжения сварочной дуги
+                        {% elif i == 12 %}Среднее отклонение тока на двигателе подающего блока
+                        {% elif i == 13 %}Среднее отклонение манипулятора от программной траектории
+                        {% elif i == 14 %}Наличие на рабочих местах необходимой технологической документации
+                        {% elif i == 15 %}Отклонение давления защитного газа
+                        {% elif i == 16 %}Отклонение давления сжатого воздуха
+                        {% elif i == 17 %}План производства на заданный период в единицах продукции
+                        {% elif i == 18 %}Количество балок, сданных ОТК с первого предъявления
+                        {% endif %}
+                    </td>
+                    <td>
+                        <input type="number"
+                               min="{{ ranges['X' ~ i][0] }}"
+                               max="{{ ranges['X' ~ i][1] }}"
+                               id="X{{ i }}"
+                               value="{{ parameters.get('X' ~ i, '') }}"
+                               placeholder="От {{ ranges['X' ~ i][0] }} до {{ ranges['X' ~ i][1] }}">
+                    </td>
+                    <td>{{ ranges['X' ~ i][0] }}</td>
+                    <td>{{ ranges['X' ~ i][1] }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <div class="buttons-container">
-        <a href="{{ url_for('index') }}">Лабораторная 1</a>
-        <button id="clearBtn">Очистить значения</button>
-        <button id="randomBtn">Случайные значения</button>
-        <button id="plotBtn">Построить диаграммы</button>        
+    <!-- Таблица констант -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Константы системы</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Константа</th>
+                    <th>Название</th>
+                    <th>Значение</th>
+                    <th>Мин.</th>
+                    <th>Макс.</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% set constants = [
+                ('O0', 'O<sub>0</sub>', 'Численность операторов РТК на начало периода', 0, 8),
+                ('Oin', 'O<sub>in</sub>', 'Численность принятых операторов РТК за период', 0, 2),
+                ('Oout', 'O<sub>out</sub>', 'Численность уволенных операторов РТК за период', 0, 2),
+                ('Sm', 'Sm', 'Сменность работы производства', 1, 3),
+                ('Rw', 'Rw', 'Количество РТК, задействованных в производственном процессе', 1, 6),
+                ('Nst', 'N<sub>st</sub>', 'Количество остановок РТК за период', 0, 500),
+                ('S_star', 'S*', 'Допустимое количество остановок РТК за один сварочный цикл', 0, 5),
+                ('Ld', 'Ld', 'Общая длина дефектных швов за период', 0, 120),
+                ('L_star', 'L*', 'Расчетная длина дефектных швов за период', 0, 80),
+                ('Mf', 'M<sub>f</sub>', 'Количество выполненных мероприятий из графика ППР по обслуживанию РТК', 0, 22),
+                ('Mp', 'M<sub>p</sub>', 'Количество запланированных мероприятий из графика ППР по обслуживанию РТК', 0, 22),
+                ('P0', 'P<sub>0</sub>', 'Численность программистов на начало периода', 0, 3),
+                ('Pin', 'P<sub>in</sub>', 'Численность принятых программистов за период', 0, 1),
+                ('Pout', 'P<sub>out</sub>', 'Численность уволенных программистов за период', 0, 1),
+                ('R0', 'R<sub>0</sub>', 'Численность наладчиков сварочного оборудования на начало периода', 0, 4),
+                ('Rin', 'R<sub>in</sub>', 'Численность принятых наладчиков сварочного оборудования за период', 0, 1),
+                ('Rout', 'R<sub>out</sub>', 'Численность уволенных наладчиков сварочного оборудования за период', 0, 1),
+                ('C0', 'C<sub>0</sub>', 'Численность контролеров ОТК на начало периода', 0, 2),
+                ('Cin', 'C<sub>in</sub>', 'Численность принятых контролеров ОТК за период', 0, 1),
+                ('Cout', 'C<sub>out</sub>', 'Численность уволенных контролеров ОТК за период', 0, 1),
+                ('T0', 'T<sub>0</sub>', 'Численность технологов на начало периода', 0, 1),
+                ('Tin', 'T<sub>in</sub>', 'Численность принятых технологов за период', 0, 1),
+                ('Tout', 'T<sub>out</sub>', 'Численность уволенных технологов за период', 0, 1),
+                ('Nr', 'Nr', 'Длительность ремонта РТК в днях', 0, 3),
+                ('Df', 'D<sub>f</sub>', 'Фактический срок поставки запчастей и материалов для ремонта РТК', 0, 30),
+                ('Dp', 'D<sub>p</sub>', 'Запланированный срок поставки запчастей и материалов для ремонта РТК', 0, 30),
+                ('DeltaU', 'Δ<sub>U</sub>', 'Среднее отклонение напряжения сварочной дуги от номинального значения', 0, 5),
+                ('Delta_star_U', 'Δ*<sub>U</sub>', 'Допустимое отклонение напряжения сварочной дуги от номинального значения', 0, 2),
+                ('DeltaI', 'Δ<sub>I</sub>', 'Среднее отклонение тока на двигателе подающего механизма от номинального значения', 0, 2),
+                ('Delta_star_I', 'Δ*<sub>I</sub>', 'Допустимое отклонение тока на двигателе подающего механизма от номинального значения', 0, 0.8),
+                ('DeltaT', 'Δ<sub>T</sub>', 'Среднее отклонение манипулятора от запрограммированной траектории', 0, 5),
+                ('Delta_star_T', 'Δ*<sub>T</sub>', 'Допустимое манипулятора от запрограммированной траектории', 0, 1),
+                ('Tdf', 'Td<sub>f</sub>', 'Фактическое количество документов по технологическому процессу', 0, 12),
+                ('Tdp', 'Td<sub>p</sub>', 'Необходимое количество документов по технологическому процессу', 0, 12),
+                ('DeltaPG', 'Δ<sub>PG</sub>', 'Среднее отклонение давления защитного газа', 0, 2),
+                ('Delta_star_PG', 'Δ*<sub>PG</sub>', 'Допустимое отклонение давления защитного газа', 0, 0.5),
+                ('DeltaPV', 'Δ<sub>PV</sub>', 'Среднее отклонение давления сжатого воздуха', 0, 3),
+                ('Delta_star_PV', 'Δ*<sub>PV</sub>', 'Допустимое отклонение давления сжатого воздуха', 0, 1),
+                ('NTP', 'N<sub>TP</sub>', 'Количество балок, собранных в соответствии с технологическим процессу', 0, 360),
+                ('Nd', 'N<sub>d</sub>', 'Количество балок, сданных с 1-го предъявления', 0, 360),
+                ('Ab', 'Ab', 'Количество актов о несоответствующей продукции за период', 0, 50)
+                ] %}
+
+                {% for const_name, const_symbol, description, min_val, max_val in constants %}
+                <tr>
+                    <td>{{ const_symbol|safe }}</td>
+                    <td>{{ description }}</td>
+                    <td>
+                        <input type="number"
+                               min="{{ min_val }}"
+                               max="{{ max_val }}"
+                               id="{{ const_name }}"
+                               placeholder="От {{ min_val }} до {{ max_val }}"
+                               value="{{ parameters.get(const_name, '') }}">
+                    </td>
+                    <td>{{ min_val }}</td>
+                    <td>{{ max_val }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div id="diagramsContainer" class="diagrams-container" style="display: none;">
-        <h2>Результаты моделирования</h2>
-        <div class="diagram">
-            <h3>График изменения параметров по времени</h3>
-            <img id="timeSeriesImg" src="" alt="График изменения параметров по времени">
-        </div>
-        <div class="diagram">
-            <h3>Лепестковые диаграммы</h3>
-            <img id="radarChartsImg" src="" alt="Лепестковые диаграммы">
+    <!-- Таблица полиномов f1-f36 -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Внутренние функции</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Функция</th>
+                    <th>Формула</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr><td>f<sub>1</sub>(X<sub>3</sub>)</td><td class="formula-row">f<sub>1</sub> = <input type="number" class="formula-input" id="f1_a3" placeholder="a3" value="{{ parameters.get('f1_a3', '') }}"> * X<sub>3</sub>³ + <input type="number" class="formula-input" id="f1_a2" placeholder="a2" value="{{ parameters.get('f1_a2', '') }}"> * X<sub>3</sub>² + <input type="number" class="formula-input" id="f1_a1" placeholder="a1" value="{{ parameters.get('f1_a1', '') }}"> * X<sub>3</sub> + <input type="number" class="formula-input" id="f1_a0" placeholder="a0" value="{{ parameters.get('f1_a0', '') }}"></td></tr>
+                <tr><td>f<sub>2</sub>(X<sub>11</sub>)</td><td class="formula-row">f<sub>2</sub> = <input type="number" class="formula-input" id="f2_a3" placeholder="a3" value="{{ parameters.get('f2_a3', '') }}"> * X<sub>11</sub>³ + <input type="number" class="formula-input" id="f2_a2" placeholder="a2" value="{{ parameters.get('f2_a2', '') }}"> * X<sub>11</sub>² + <input type="number" class="formula-input" id="f2_a1" placeholder="a1" value="{{ parameters.get('f2_a1', '') }}"> * X<sub>11</sub> + <input type="number" class="formula-input" id="f2_a0" placeholder="a0" value="{{ parameters.get('f2_a0', '') }}"></td></tr>
+                <tr><td>f<sub>3</sub>(X<sub>12</sub>)</td><td class="formula-row">f<sub>3</sub> = <input type="number" class="formula-input" id="f3_a3" placeholder="a3" value="{{ parameters.get('f3_a3', '') }}"> * X<sub>12</sub>³ + <input type="number" class="formula-input" id="f3_a2" placeholder="a2" value="{{ parameters.get('f3_a2', '') }}"> * X<sub>12</sub>² + <input type="number" class="formula-input" id="f3_a1" placeholder="a1" value="{{ parameters.get('f3_a1', '') }}"> * X<sub>12</sub> + <input type="number" class="formula-input" id="f3_a0" placeholder="a0" value="{{ parameters.get('f3_a0', '') }}"></td></tr>
+                <tr><td>f<sub>4</sub>(X<sub>13</sub>)</td><td class="formula-row">f<sub>4</sub> = <input type="number" class="formula-input" id="f4_a3" placeholder="a3" value="{{ parameters.get('f4_a3', '') }}"> * X<sub>13</sub>³ + <input type="number" class="formula-input" id="f4_a2" placeholder="a2" value="{{ parameters.get('f4_a2', '') }}"> * X<sub>13</sub>² + <input type="number" class="formula-input" id="f4_a1" placeholder="a1" value="{{ parameters.get('f4_a1', '') }}"> * X<sub>13</sub> + <input type="number" class="formula-input" id="f4_a0" placeholder="a0" value="{{ parameters.get('f4_a0', '') }}"></td></tr>
+                <tr><td>f<sub>5</sub>(X<sub>2</sub>)</td><td class="formula-row">f<sub>5</sub> = <input type="number" class="formula-input" id="f5_a3" placeholder="a3" value="{{ parameters.get('f5_a3', '') }}"> * X<sub>2</sub>³ + <input type="number" class="formula-input" id="f5_a2" placeholder="a2" value="{{ parameters.get('f5_a2', '') }}"> * X<sub>2</sub>² + <input type="number" class="formula-input" id="f5_a1" placeholder="a1" value="{{ parameters.get('f5_a1', '') }}"> * X<sub>2</sub> + <input type="number" class="formula-input" id="f5_a0" placeholder="a0" value="{{ parameters.get('f5_a0', '') }}"></td></tr>
+                <tr><td>f<sub>6</sub>(X<sub>8</sub>)</td><td class="formula-row">f<sub>6</sub> = <input type="number" class="formula-input" id="f6_a3" placeholder="a3" value="{{ parameters.get('f6_a3', '') }}"> * X<sub>8</sub>³ + <input type="number" class="formula-input" id="f6_a2" placeholder="a2" value="{{ parameters.get('f6_a2', '') }}"> * X<sub>8</sub>² + <input type="number" class="formula-input" id="f6_a1" placeholder="a1" value="{{ parameters.get('f6_a1', '') }}"> * X<sub>8</sub> + <input type="number" class="formula-input" id="f6_a0" placeholder="a0" value="{{ parameters.get('f6_a0', '') }}"></td></tr>
+                <tr><td>f<sub>7</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>7</sub> = <input type="number" class="formula-input" id="f7_a3" placeholder="a3" value="{{ parameters.get('f7_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f7_a2" placeholder="a2" value="{{ parameters.get('f7_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f7_a1" placeholder="a1" value="{{ parameters.get('f7_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f7_a0" placeholder="a0" value="{{ parameters.get('f7_a0', '') }}"></td></tr>
+                <tr><td>f<sub>8</sub>(X<sub>10</sub>)</td><td class="formula-row">f<sub>8</sub> = <input type="number" class="formula-input" id="f8_a3" placeholder="a3" value="{{ parameters.get('f8_a3', '') }}"> * X<sub>10</sub>³ + <input type="number" class="formula-input" id="f8_a2" placeholder="a2" value="{{ parameters.get('f8_a2', '') }}"> * X<sub>10</sub>² + <input type="number" class="formula-input" id="f8_a1" placeholder="a1" value="{{ parameters.get('f8_a1', '') }}"> * X<sub>10</sub> + <input type="number" class="formula-input" id="f8_a0" placeholder="a0" value="{{ parameters.get('f8_a0', '') }}"></td></tr>
+                <tr><td>f<sub>9</sub>(X<sub>15</sub>)</td><td class="formula-row">f<sub>9</sub> = <input type="number" class="formula-input" id="f9_a3" placeholder="a3" value="{{ parameters.get('f9_a3', '') }}"> * X<sub>15</sub>³ + <input type="number" class="formula-input" id="f9_a2" placeholder="a2" value="{{ parameters.get('f9_a2', '') }}"> * X<sub>15</sub>² + <input type="number" class="formula-input" id="f9_a1" placeholder="a1" value="{{ parameters.get('f9_a1', '') }}"> * X<sub>15</sub> + <input type="number" class="formula-input" id="f9_a0" placeholder="a0" value="{{ parameters.get('f9_a0', '') }}"></td></tr>
+                <tr><td>f<sub>10</sub>(X<sub>16</sub>)</td><td class="formula-row">f<sub>10</sub> = <input type="number" class="formula-input" id="f10_a3" placeholder="a3" value="{{ parameters.get('f10_a3', '') }}"> * X<sub>16</sub>³ + <input type="number" class="formula-input" id="f10_a2" placeholder="a2" value="{{ parameters.get('f10_a2', '') }}"> * X<sub>16</sub>² + <input type="number" class="formula-input" id="f10_a1" placeholder="a1" value="{{ parameters.get('f10_a1', '') }}"> * X<sub>16</sub> + <input type="number" class="formula-input" id="f10_a0" placeholder="a0" value="{{ parameters.get('f10_a0', '') }}"></td></tr>
+                <tr><td>f<sub>11</sub>(X<sub>2</sub>)</td><td class="formula-row">f<sub>11</sub> = <input type="number" class="formula-input" id="f11_a3" placeholder="a3" value="{{ parameters.get('f11_a3', '') }}"> * X<sub>2</sub>³ + <input type="number" class="formula-input" id="f11_a2" placeholder="a2" value="{{ parameters.get('f11_a2', '') }}"> * X<sub>2</sub>² + <input type="number" class="formula-input" id="f11_a1" placeholder="a1" value="{{ parameters.get('f11_a1', '') }}"> * X<sub>2</sub> + <input type="number" class="formula-input" id="f11_a0" placeholder="a0" value="{{ parameters.get('f11_a0', '') }}"></td></tr>
+                <tr><td>f<sub>12</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>12</sub> = <input type="number" class="formula-input" id="f12_a3" placeholder="a3" value="{{ parameters.get('f12_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f12_a2" placeholder="a2" value="{{ parameters.get('f12_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f12_a1" placeholder="a1" value="{{ parameters.get('f12_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f12_a0" placeholder="a0" value="{{ parameters.get('f12_a0', '') }}"></td></tr>
+                <tr><td>f<sub>13</sub>(X<sub>15</sub>)</td><td class="formula-row">f<sub>13</sub> = <input type="number" class="formula-input" id="f13_a3" placeholder="a3" value="{{ parameters.get('f13_a3', '') }}"> * X<sub>15</sub>³ + <input type="number" class="formula-input" id="f13_a2" placeholder="a2" value="{{ parameters.get('f13_a2', '') }}"> * X<sub>15</sub>² + <input type="number" class="formula-input" id="f13_a1" placeholder="a1" value="{{ parameters.get('f13_a1', '') }}"> * X<sub>15</sub> + <input type="number" class="formula-input" id="f13_a0" placeholder="a0" value="{{ parameters.get('f13_a0', '') }}"></td></tr>
+                <tr><td>f<sub>14</sub>(X<sub>16</sub>)</td><td class="formula-row">f<sub>14</sub> = <input type="number" class="formula-input" id="f14_a3" placeholder="a3" value="{{ parameters.get('f14_a3', '') }}"> * X<sub>16</sub>³ + <input type="number" class="formula-input" id="f14_a2" placeholder="a2" value="{{ parameters.get('f14_a2', '') }}"> * X<sub>16</sub>² + <input type="number" class="formula-input" id="f14_a1" placeholder="a1" value="{{ parameters.get('f14_a1', '') }}"> * X<sub>16</sub> + <input type="number" class="formula-input" id="f14_a0" placeholder="a0" value="{{ parameters.get('f14_a0', '') }}"></td></tr>
+                <tr><td>f<sub>15</sub>(X<sub>2</sub>)</td><td class="formula-row">f<sub>15</sub> = <input type="number" class="formula-input" id="f15_a3" placeholder="a3" value="{{ parameters.get('f15_a3', '') }}"> * X<sub>2</sub>³ + <input type="number" class="formula-input" id="f15_a2" placeholder="a2" value="{{ parameters.get('f15_a2', '') }}"> * X<sub>2</sub>² + <input type="number" class="formula-input" id="f15_a1" placeholder="a1" value="{{ parameters.get('f15_a1', '') }}"> * X<sub>2</sub> + <input type="number" class="formula-input" id="f15_a0" placeholder="a0" value="{{ parameters.get('f15_a0', '') }}"></td></tr>
+                <tr><td>f<sub>16</sub>(X<sub>6</sub>)</td><td class="formula-row">f<sub>16</sub> = <input type="number" class="formula-input" id="f16_a3" placeholder="a3" value="{{ parameters.get('f16_a3', '') }}"> * X<sub>6</sub>³ + <input type="number" class="formula-input" id="f16_a2" placeholder="a2" value="{{ parameters.get('f16_a2', '') }}"> * X<sub>6</sub>² + <input type="number" class="formula-input" id="f16_a1" placeholder="a1" value="{{ parameters.get('f16_a1', '') }}"> * X<sub>6</sub> + <input type="number" class="formula-input" id="f16_a0" placeholder="a0" value="{{ parameters.get('f16_a0', '') }}"></td></tr>
+                <tr><td>f<sub>17</sub>(X<sub>7</sub>)</td><td class="formula-row">f<sub>17</sub> = <input type="number" class="formula-input" id="f17_a3" placeholder="a3" value="{{ parameters.get('f17_a3', '') }}"> * X<sub>7</sub>³ + <input type="number" class="formula-input" id="f17_a2" placeholder="a2" value="{{ parameters.get('f17_a2', '') }}"> * X<sub>7</sub>² + <input type="number" class="formula-input" id="f17_a1" placeholder="a1" value="{{ parameters.get('f17_a1', '') }}"> * X<sub>7</sub> + <input type="number" class="formula-input" id="f17_a0" placeholder="a0" value="{{ parameters.get('f17_a0', '') }}"></td></tr>
+                <tr><td>f<sub>18</sub>(X<sub>10</sub>)</td><td class="formula-row">f<sub>18</sub> = <input type="number" class="formula-input" id="f18_a3" placeholder="a3" value="{{ parameters.get('f18_a3', '') }}"> * X<sub>10</sub>³ + <input type="number" class="formula-input" id="f18_a2" placeholder="a2" value="{{ parameters.get('f18_a2', '') }}"> * X<sub>10</sub>² + <input type="number" class="formula-input" id="f18_a1" placeholder="a1" value="{{ parameters.get('f18_a1', '') }}"> * X<sub>10</sub> + <input type="number" class="formula-input" id="f18_a0" placeholder="a0" value="{{ parameters.get('f18_a0', '') }}"></td></tr>
+                <tr><td>f<sub>19</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>19</sub> = <input type="number" class="formula-input" id="f19_a3" placeholder="a3" value="{{ parameters.get('f19_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f19_a2" placeholder="a2" value="{{ parameters.get('f19_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f19_a1" placeholder="a1" value="{{ parameters.get('f19_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f19_a0" placeholder="a0" value="{{ parameters.get('f19_a0', '') }}"></td></tr>
+                <tr><td>f<sub>20</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>20</sub> = <input type="number" class="formula-input" id="f20_a3" placeholder="a3" value="{{ parameters.get('f20_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f20_a2" placeholder="a2" value="{{ parameters.get('f20_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f20_a1" placeholder="a1" value="{{ parameters.get('f20_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f20_a0" placeholder="a0" value="{{ parameters.get('f20_a0', '') }}"></td></tr>
+                <tr><td>f<sub>21</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>21</sub> = <input type="number" class="formula-input" id="f21_a3" placeholder="a3" value="{{ parameters.get('f21_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f21_a2" placeholder="a2" value="{{ parameters.get('f21_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f21_a1" placeholder="a1" value="{{ parameters.get('f21_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f21_a0" placeholder="a0" value="{{ parameters.get('f21_a0', '') }}"></td></tr>
+                <tr><td>f<sub>22</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>22</sub> = <input type="number" class="formula-input" id="f22_a3" placeholder="a3" value="{{ parameters.get('f22_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f22_a2" placeholder="a2" value="{{ parameters.get('f22_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f22_a1" placeholder="a1" value="{{ parameters.get('f22_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f22_a0" placeholder="a0" value="{{ parameters.get('f22_a0', '') }}"></td></tr>
+                <tr><td>f<sub>23</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>23</sub> = <input type="number" class="formula-input" id="f23_a3" placeholder="a3" value="{{ parameters.get('f23_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f23_a2" placeholder="a2" value="{{ parameters.get('f23_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f23_a1" placeholder="a1" value="{{ parameters.get('f23_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f23_a0" placeholder="a0" value="{{ parameters.get('f23_a0', '') }}"></td></tr>
+                <tr><td>f<sub>24</sub>(X<sub>5</sub>)</td><td class="formula-row">f<sub>24</sub> = <input type="number" class="formula-input" id="f24_a3" placeholder="a3" value="{{ parameters.get('f24_a3', '') }}"> * X<sub>5</sub>³ + <input type="number" class="formula-input" id="f24_a2" placeholder="a2" value="{{ parameters.get('f24_a2', '') }}"> * X<sub>5</sub>² + <input type="number" class="formula-input" id="f24_a1" placeholder="a1" value="{{ parameters.get('f24_a1', '') }}"> * X<sub>5</sub> + <input type="number" class="formula-input" id="f24_a0" placeholder="a0" value="{{ parameters.get('f24_a0', '') }}"></td></tr>
+                <tr><td>f<sub>25</sub>(X<sub>5</sub>)</td><td class="formula-row">f<sub>25</sub> = <input type="number" class="formula-input" id="f25_a3" placeholder="a3" value="{{ parameters.get('f25_a3', '') }}"> * X<sub>5</sub>³ + <input type="number" class="formula-input" id="f25_a2" placeholder="a2" value="{{ parameters.get('f25_a2', '') }}"> * X<sub>5</sub>² + <input type="number" class="formula-input" id="f25_a1" placeholder="a1" value="{{ parameters.get('f25_a1', '') }}"> * X<sub>5</sub> + <input type="number" class="formula-input" id="f25_a0" placeholder="a0" value="{{ parameters.get('f25_a0', '') }}"></td></tr>
+                <tr><td>f<sub>26</sub>(X<sub>5</sub>)</td><td class="formula-row">f<sub>26</sub> = <input type="number" class="formula-input" id="f26_a3" placeholder="a3" value="{{ parameters.get('f26_a3', '') }}"> * X<sub>5</sub>³ + <input type="number" class="formula-input" id="f26_a2" placeholder="a2" value="{{ parameters.get('f26_a2', '') }}"> * X<sub>5</sub>² + <input type="number" class="formula-input" id="f26_a1" placeholder="a1" value="{{ parameters.get('f26_a1', '') }}"> * X<sub>5</sub> + <input type="number" class="formula-input" id="f26_a0" placeholder="a0" value="{{ parameters.get('f26_a0', '') }}"></td></tr>
+                <tr><td>f<sub>27</sub>(X<sub>9</sub>)</td><td class="formula-row">f<sub>27</sub> = <input type="number" class="formula-input" id="f27_a3" placeholder="a3" value="{{ parameters.get('f27_a3', '') }}"> * X<sub>9</sub>³ + <input type="number" class="formula-input" id="f27_a2" placeholder="a2" value="{{ parameters.get('f27_a2', '') }}"> * X<sub>9</sub>² + <input type="number" class="formula-input" id="f27_a1" placeholder="a1" value="{{ parameters.get('f27_a1', '') }}"> * X<sub>9</sub> + <input type="number" class="formula-input" id="f27_a0" placeholder="a0" value="{{ parameters.get('f27_a0', '') }}"></td></tr>
+                <tr><td>f<sub>28</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>28</sub> = <input type="number" class="formula-input" id="f28_a3" placeholder="a3" value="{{ parameters.get('f28_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f28_a2" placeholder="a2" value="{{ parameters.get('f28_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f28_a1" placeholder="a1" value="{{ parameters.get('f28_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f28_a0" placeholder="a0" value="{{ parameters.get('f28_a0', '') }}"></td></tr>
+                <tr><td>f<sub>29</sub>(X<sub>17</sub>)</td><td class="formula-row">f<sub>29</sub> = <input type="number" class="formula-input" id="f29_a3" placeholder="a3" value="{{ parameters.get('f29_a3', '') }}"> * X<sub>17</sub>³ + <input type="number" class="formula-input" id="f29_a2" placeholder="a2" value="{{ parameters.get('f29_a2', '') }}"> * X<sub>17</sub>² + <input type="number" class="formula-input" id="f29_a1" placeholder="a1" value="{{ parameters.get('f29_a1', '') }}"> * X<sub>17</sub> + <input type="number" class="formula-input" id="f29_a0" placeholder="a0" value="{{ parameters.get('f29_a0', '') }}"></td></tr>
+                <tr><td>f<sub>30</sub>(X<sub>9</sub>)</td><td class="formula-row">f<sub>30</sub> = <input type="number" class="formula-input" id="f30_a3" placeholder="a3" value="{{ parameters.get('f30_a3', '') }}"> * X<sub>9</sub>³ + <input type="number" class="formula-input" id="f30_a2" placeholder="a2" value="{{ parameters.get('f30_a2', '') }}"> * X<sub>9</sub>² + <input type="number" class="formula-input" id="f30_a1" placeholder="a1" value="{{ parameters.get('f30_a1', '') }}"> * X<sub>9</sub> + <input type="number" class="formula-input" id="f30_a0" placeholder="a0" value="{{ parameters.get('f30_a0', '') }}"></td></tr>
+                <tr><td>f<sub>31</sub>(X<sub>6</sub>)</td><td class="formula-row">f<sub>31</sub> = <input type="number" class="formula-input" id="f31_a3" placeholder="a3" value="{{ parameters.get('f31_a3', '') }}"> * X<sub>6</sub>³ + <input type="number" class="formula-input" id="f31_a2" placeholder="a2" value="{{ parameters.get('f31_a2', '') }}"> * X<sub>6</sub>² + <input type="number" class="formula-input" id="f31_a1" placeholder="a1" value="{{ parameters.get('f31_a1', '') }}"> * X<sub>6</sub> + <input type="number" class="formula-input" id="f31_a0" placeholder="a0" value="{{ parameters.get('f31_a0', '') }}"></td></tr>
+                <tr><td>f<sub>32</sub>(X<sub>7</sub>)</td><td class="formula-row">f<sub>32</sub> = <input type="number" class="formula-input" id="f32_a3" placeholder="a3" value="{{ parameters.get('f32_a3', '') }}"> * X<sub>7</sub>³ + <input type="number" class="formula-input" id="f32_a2" placeholder="a2" value="{{ parameters.get('f32_a2', '') }}"> * X<sub>7</sub>² + <input type="number" class="formula-input" id="f32_a1" placeholder="a1" value="{{ parameters.get('f32_a1', '') }}"> * X<sub>7</sub> + <input type="number" class="formula-input" id="f32_a0" placeholder="a0" value="{{ parameters.get('f32_a0', '') }}"></td></tr>
+                <tr><td>f<sub>33</sub>(X<sub>8</sub>)</td><td class="formula-row">f<sub>33</sub> = <input type="number" class="formula-input" id="f33_a3" placeholder="a3" value="{{ parameters.get('f33_a3', '') }}"> * X<sub>8</sub>³ + <input type="number" class="formula-input" id="f33_a2" placeholder="a2" value="{{ parameters.get('f33_a2', '') }}"> * X<sub>8</sub>² + <input type="number" class="formula-input" id="f33_a1" placeholder="a1" value="{{ parameters.get('f33_a1', '') }}"> * X<sub>8</sub> + <input type="number" class="formula-input" id="f33_a0" placeholder="a0" value="{{ parameters.get('f33_a0', '') }}"></td></tr>
+                <tr><td>f<sub>34</sub>(X<sub>14</sub>)</td><td class="formula-row">f<sub>34</sub> = <input type="number" class="formula-input" id="f34_a3" placeholder="a3" value="{{ parameters.get('f34_a3', '') }}"> * X<sub>14</sub>³ + <input type="number" class="formula-input" id="f34_a2" placeholder="a2" value="{{ parameters.get('f34_a2', '') }}"> * X<sub>14</sub>² + <input type="number" class="formula-input" id="f34_a1" placeholder="a1" value="{{ parameters.get('f34_a1', '') }}"> * X<sub>14</sub> + <input type="number" class="formula-input" id="f34_a0" placeholder="a0" value="{{ parameters.get('f34_a0', '') }}"></td></tr>
+                <tr><td>f<sub>35</sub>(X<sub>1</sub>)</td><td class="formula-row">f<sub>35</sub> = <input type="number" class="formula-input" id="f35_a3" placeholder="a3" value="{{ parameters.get('f35_a3', '') }}"> * X<sub>1</sub>³ + <input type="number" class="formula-input" id="f35_a2" placeholder="a2" value="{{ parameters.get('f35_a2', '') }}"> * X<sub>1</sub>² + <input type="number" class="formula-input" id="f35_a1" placeholder="a1" value="{{ parameters.get('f35_a1', '') }}"> * X<sub>1</sub> + <input type="number" class="formula-input" id="f35_a0" placeholder="a0" value="{{ parameters.get('f35_a0', '') }}"></td></tr>
+                <tr><td>f<sub>36</sub>(X<sub>4</sub>)</td><td class="formula-row">f<sub>36</sub> = <input type="number" class="formula-input" id="f36_a3" placeholder="a3" value="{{ parameters.get('f36_a3', '') }}"> * X<sub>4</sub>³ + <input type="number" class="formula-input" id="f36_a2" placeholder="a2" value="{{ parameters.get('f36_a2', '') }}"> * X<sub>4</sub>² + <input type="number" class="formula-input" id="f36_a1" placeholder="a1" value="{{ parameters.get('f36_a1', '') }}"> * X<sub>4</sub> + <input type="number" class="formula-input" id="f36_a0" placeholder="a0" value="{{ parameters.get('f36_a0', '') }}"></td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    <script>
-        // Функция для отображения сообщений
-        function showMessage(message, type, duration = 5000) {
-            const messagesDiv = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
-            messageDiv.textContent = message;
-            messagesDiv.appendChild(messageDiv);
+<div class="buttons-container">
+    <a href="{{ url_for('index') }}">Лабораторная 1</a>
+    <button id="clearBtn">Очистить значения</button>
+    <button id="randomBtn">Случайные значения</button>
+    <button id="plotBtn">Построить диаграммы</button>
+</div>
+
+<div id="diagramsContainer" class="diagrams-container" style="display: none;">
+    <h2>Результаты моделирования</h2>
+    <div class="diagram">
+        <h3>График изменения параметров по времени</h3>
+        <img id="timeSeriesImg" src="" alt="График изменения параметров по времени">
+    </div>
+    <div class="diagram">
+        <h3>Лепестковые диаграммы</h3>
+        <img id="radarChartsImg" src="" alt="Лепестковые диаграммы">
+    </div>
+</div>
+
+<script>
+    // Функция для отображения сообщений
+    function showMessage(message, type, duration = 5000) {
+        const messagesDiv = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+        messageDiv.textContent = message;
+        messagesDiv.appendChild(messageDiv);
+        messageDiv.style.opacity = 0;
+        setTimeout(() => (messageDiv.style.opacity = 1), 50);
+        setTimeout(() => {
             messageDiv.style.opacity = 0;
-            setTimeout(() => (messageDiv.style.opacity = 1), 50);
-            setTimeout(() => {
-                messageDiv.style.opacity = 0;
-                setTimeout(() => messageDiv.remove(), 500);
-            }, duration);
-        }
+            setTimeout(() => messageDiv.remove(), 500);
+        }, duration);
+    }
 
-        // Функция для получения всех значений из формы
-        function getFormData() {
-            const inputs = document.querySelectorAll('input');
-            const data = {};
-            inputs.forEach(input => {
-                data[input.id] = input.value;
-            });
-            return data;
-        }
+    // Функция для получения всех значений из формы
+    function getFormData() {
+        const inputs = document.querySelectorAll('input');
+        const data = {};
+        inputs.forEach(input => {
+            data[input.id] = input.value;
+        });
+        return data;
+    }
 
-        // Функция для проверки значений параметров X1-X18
-        function validateParameterValues() {
-            let isValid = true;
-            let invalidParams = [];
+    // Функция для проверки значений параметров X1-X18
+    function validateParameterValues() {
+        let isValid = true;
+        let invalidParams = [];
 
-            for (let i = 1; i <= 18; i++) {
-                const minInput = document.getElementById(`X${i}_min`);
-                const initialInput = document.getElementById(`X${i}`);
-                const maxInput = document.getElementById(`X${i}_max`);
-
-                if (!minInput || !initialInput || !maxInput) continue;
-
-                const minValue = parseFloat(minInput.value);
-                const initValue = parseFloat(initialInput.value);
-                const maxValue = parseFloat(maxInput.value);
-
-                // Сбрасываем цвет перед проверкой
-                minInput.style.borderColor = '';
-                initialInput.style.borderColor = '';
-                maxInput.style.borderColor = '';
-
-                if (isNaN(minValue) || isNaN(initValue) || isNaN(maxValue)) continue;
-
-                let hasError = false;
-
-                // Проверяем: min ≤ initial ≤ max
-                if (initValue < minValue) {
-                    minInput.style.borderColor = '#e74c3c';
-                    initialInput.style.borderColor = '#e74c3c';
-                    hasError = true;
-                }
-                if (maxValue < initValue) {
-                    maxInput.style.borderColor = '#e74c3c';
-                    initialInput.style.borderColor = '#e74c3c';
-                    hasError = true;
-                }
-                if (maxValue < minValue) {
-                    minInput.style.borderColor = '#e74c3c';
-                    maxInput.style.borderColor = '#e74c3c';
-                    hasError = true;
-                }
-
-                if (hasError) {
-                    isValid = false;
-                    invalidParams.push(`X${i}`);
-                }
-            }
-
-            if (!isValid) {
-                const list = invalidParams.join(', ');
-                showMessage(
-                    `Ошибка: нарушено условие min ≤ начальное ≤ max у параметров ${list}`,
-                    'error'
-                );
-            }
-
-            return isValid;
-        }
-
-
-        // Проверка одного параметра X по всем трем условиям
-        function validateSingleParameter(index) {
-            const minInput = document.getElementById(`X${index}_min`);
-            const initialInput = document.getElementById(`X${index}`);
-            const maxInput = document.getElementById(`X${index}_max`);
-
-            if (!minInput || !initialInput || !maxInput) return;
-
-            const minValue = parseFloat(minInput.value);
-            const initValue = parseFloat(initialInput.value);
-            const maxValue = parseFloat(maxInput.value);
-
-            // Сбрасываем цвета перед проверкой
-            [minInput, initialInput, maxInput].forEach(input => {
-                input.style.borderColor = '';
-            });
-
-            // Проверяем, если все три значения заданы
-            if (!isNaN(minValue) && !isNaN(initValue) && !isNaN(maxValue)) {
-                if (initValue < minValue) {
-                    minInput.style.borderColor = '#e74c3c';
-                    initialInput.style.borderColor = '#e74c3c';
-                }
-                if (maxValue < initValue) {
-                    maxInput.style.borderColor = '#e74c3c';
-                    initialInput.style.borderColor = '#e74c3c';
-                }
-                if (maxValue < minValue) {
-                    maxInput.style.borderColor = '#e74c3c';
-                    minInput.style.borderColor = '#e74c3c';
-                }
-            }
-            // Если какие-то поля пустые, ничего не подсвечиваем
-        }
-
-        // Добавляем обработчики событий для проверки при вводе и потере фокуса
         for (let i = 1; i <= 18; i++) {
             const minInput = document.getElementById(`X${i}_min`);
             const initialInput = document.getElementById(`X${i}`);
             const maxInput = document.getElementById(`X${i}_max`);
 
-            [minInput, initialInput, maxInput].forEach(input => {
-                if (!input) return;
-                input.addEventListener('input', () => validateSingleParameter(i));
-                input.addEventListener('blur', () => validateSingleParameter(i));
-            });
+            if (!minInput || !initialInput || !maxInput) continue;
+
+            const minValue = parseFloat(minInput.value);
+            const initValue = parseFloat(initialInput.value);
+            const maxValue = parseFloat(maxInput.value);
+
+            // Сбрасываем цвет перед проверкой
+            minInput.style.borderColor = '';
+            initialInput.style.borderColor = '';
+            maxInput.style.borderColor = '';
+
+            if (isNaN(minValue) || isNaN(initValue) || isNaN(maxValue)) continue;
+
+            let hasError = false;
+
+            // Проверяем: min ≤ initial ≤ max
+            if (initValue < minValue) {
+                minInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+                hasError = true;
+            }
+            if (maxValue < initValue) {
+                maxInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+                hasError = true;
+            }
+            if (maxValue < minValue) {
+                minInput.style.borderColor = '#e74c3c';
+                maxInput.style.borderColor = '#e74c3c';
+                hasError = true;
+            }
+
+            if (hasError) {
+                isValid = false;
+                invalidParams.push(`X${i}`);
+            }
         }
 
+        if (!isValid) {
+            const list = invalidParams.join(', ');
+            showMessage(
+                `Ошибка: нарушено условие min ≤ начальное ≤ max у параметров ${list}`,
+                'error'
+            );
+        }
 
-        // Очистка всех значений
-        document.getElementById('clearBtn').addEventListener('click', function () {
-            const inputs = document.querySelectorAll('input');
-            inputs.forEach(input => {
-                input.value = '';
-                input.style.borderColor = ''; // Сбрасываем цвет границы
-            });
-            document.getElementById('diagramsContainer').style.display = 'none';
+        return isValid;
+    }
 
-            fetch('/clear2', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showMessage('Все значения очищены', 'success');
-                    }
-                })
-                .catch(error => {
-                    showMessage('Ошибка при очистке значений', 'error');
-                });
+
+    // Проверка одного параметра X по всем трем условиям
+    function validateSingleParameter(index) {
+        const minInput = document.getElementById(`X${index}_min`);
+        const initialInput = document.getElementById(`X${index}`);
+        const maxInput = document.getElementById(`X${index}_max`);
+
+        if (!minInput || !initialInput || !maxInput) return;
+
+        const minValue = parseFloat(minInput.value);
+        const initValue = parseFloat(initialInput.value);
+        const maxValue = parseFloat(maxInput.value);
+
+        // Сбрасываем цвета перед проверкой
+        [minInput, initialInput, maxInput].forEach(input => {
+            input.style.borderColor = '';
         });
 
-        // Случайные значения
-        document.getElementById('randomBtn').addEventListener('click', function () {
-            fetch('/random2', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+        // Проверяем, если все три значения заданы
+        if (!isNaN(minValue) && !isNaN(initValue) && !isNaN(maxValue)) {
+            if (initValue < minValue) {
+                minInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+            }
+            if (maxValue < initValue) {
+                maxInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+            }
+            if (maxValue < minValue) {
+                maxInput.style.borderColor = '#e74c3c';
+                minInput.style.borderColor = '#e74c3c';
+            }
+        }
+        // Если какие-то поля пустые, ничего не подсвечиваем
+    }
+
+    // Добавляем обработчики событий для проверки при вводе и потере фокуса
+    for (let i = 1; i <= 18; i++) {
+        const minInput = document.getElementById(`X${i}_min`);
+        const initialInput = document.getElementById(`X${i}`);
+        const maxInput = document.getElementById(`X${i}_max`);
+
+        [minInput, initialInput, maxInput].forEach(input => {
+            if (!input) return;
+            input.addEventListener('input', () => validateSingleParameter(i));
+            input.addEventListener('blur', () => validateSingleParameter(i));
+        });
+    }
+
+
+    // Очистка всех значений
+    document.getElementById('clearBtn').addEventListener('click', function () {
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.value = '';
+            input.style.borderColor = ''; // Сбрасываем цвет границы
+        });
+        document.getElementById('diagramsContainer').style.display = 'none';
+
+        fetch('/clear2', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage('Все значения очищены', 'success');
                 }
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        for (const [key, value] of Object.entries(data.parameters)) {
-                            const input = document.getElementById(key);
-                            if (input) {
-                                input.value = value;
-                                input.style.borderColor = ''; // Сбрасываем цвет границы
-                            }
+            .catch(error => {
+                showMessage('Ошибка при очистке значений', 'error');
+            });
+    });
+
+    // Случайные значения
+    document.getElementById('randomBtn').addEventListener('click', function () {
+        fetch('/random2', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    for (const [key, value] of Object.entries(data.parameters)) {
+                        const input = document.getElementById(key);
+                        if (input) {
+                            input.value = value;
+                            input.style.borderColor = ''; // Сбрасываем цвет границы
                         }
-                        showMessage('Значения заполнены случайными данными', 'success');
                     }
-                })
-                .catch(error => {
-                    showMessage('Ошибка при генерации случайных значений', 'error');
-                });
-        });
-
-        // Диапазоны значений
-        const allowedRanges = {
-            pR: {
-                X1: [0, 10], X2: [0, 8], X3: [0, 20], X4: [0, 3], X5: [0, 1],
-                X6: [0, 3], X7: [0, 4], X8: [0, 2], X9: [0, 1], X10: [0, 30],
-                X11: [0, 5], X12: [0, 2], X13: [0, 5], X14: [0, 1],
-                X15: [0, 2], X16: [0, 3], X17: [0, 180], X18: [0, 360]
-            },
-            constants: {
-                O0: [0, 8], Oin: [0, 2], Oout: [0, 2], Sm: [1, 3], Rw: [1, 6],
-                Nst: [0, 500], S_star: [0, 5], Ld: [0, 120], L_star: [0, 80],
-                Mf: [0, 22], Mp: [0, 22], P0: [0, 3], Pin: [0, 1], Pout: [0, 1],
-                R0: [0, 4], Rin: [0, 1], Rout: [0, 1], C0: [0, 2], Cin: [0, 1],
-                Cout: [0, 1], T0: [0, 1], Tin: [0, 1], Tout: [0, 1], Nr: [0, 3],
-                Df: [0, 30], Dp: [0, 30], DeltaU: [0, 5], Delta_star_U: [0, 2],
-                DeltaI: [0, 2], Delta_star_I: [0, 0.8], DeltaT: [0, 5],
-                Delta_star_T: [0, 1], Tdf: [0, 12], Tdp: [0, 12],
-                DeltaPG: [0, 2], Delta_star_PG: [0, 0.5],
-                DeltaPV: [0, 3], Delta_star_PV: [0, 1],
-                NTP: [0, 360], Nd: [0, 360], Ab: [0, 50]
-            }
-        };
-
-        // Проверка, что введённое значение в пределах допустимого диапазона
-        function validateGlobalRanges() {
-            let isValid = true;
-            let errors = [];
-
-            // Проверяем параметры X1-X18
-            for (let i = 1; i <= 18; i++) {
-                const input = document.getElementById(`X${i}`);
-                const input_min = document.getElementById(`X${i}_min`);
-                const input_max = document.getElementById(`X${i}_max`);
-                if (!input) continue;
-
-                const value = parseFloat(input.value);
-                const value_min = parseFloat(input_min.value);
-                const value_max = parseFloat(input_max.value);
-                const range = allowedRanges.pR[`X${i}`];
-                const [minVal, maxVal] = range;
-
-                input.style.borderColor = ''; // сброс
-                input_min.style.borderColor = ''; // сброс
-                input_max.style.borderColor = ''; // сброс
-
-                if (isNaN(value)) continue;
-                if ((value < minVal || value > maxVal) || (value_min < minVal || value_min > maxVal) || (value_max < minVal || value_max > maxVal)) {
-                    input.style.borderColor = '#e74c3c';
-                    input_min.style.borderColor = '#e74c3c';
-                    input_max.style.borderColor = '#e74c3c';
-                    errors.push(`X${i} (допустимо от ${minVal} до ${maxVal})`);
-                    isValid = false;
+                    showMessage('Значения заполнены случайными данными', 'success');
                 }
+            })
+            .catch(error => {
+                showMessage('Ошибка при генерации случайных значений', 'error');
+            });
+    });
+
+    // Диапазоны значений из self.pR
+    const allowedRanges = {
+        pR: {
+            X1: [0, 10], X2: [0, 8], X3: [0, 20], X4: [0, 3], X5: [0, 1],
+            X6: [0, 3], X7: [0, 4], X8: [0, 2], X9: [0, 1], X10: [0, 30],
+            X11: [0, 5], X12: [0, 2], X13: [0, 5], X14: [0, 1],
+            X15: [0, 2], X16: [0, 3], X17: [0, 180], X18: [0, 360]
+        },
+        constants: {
+            O0: [0, 8], Oin: [0, 2], Oout: [0, 2], Sm: [1, 3], Rw: [1, 6],
+            Nst: [0, 500], S_star: [0, 5], Ld: [0, 120], L_star: [0, 80],
+            Mf: [0, 22], Mp: [0, 22], P0: [0, 3], Pin: [0, 1], Pout: [0, 1],
+            R0: [0, 4], Rin: [0, 1], Rout: [0, 1], C0: [0, 2], Cin: [0, 1],
+            Cout: [0, 1], T0: [0, 1], Tin: [0, 1], Tout: [0, 1], Nr: [0, 3],
+            Df: [0, 30], Dp: [0, 30], DeltaU: [0, 5], Delta_star_U: [0, 2],
+            DeltaI: [0, 2], Delta_star_I: [0, 0.8], DeltaT: [0, 5],
+            Delta_star_T: [0, 1], Tdf: [0, 12], Tdp: [0, 12],
+            DeltaPG: [0, 2], Delta_star_PG: [0, 0.5],
+            DeltaPV: [0, 3], Delta_star_PV: [0, 1],
+            NTP: [0, 360], Nd: [0, 360], Ab: [0, 50]
+        }
+    };
+
+    // Проверка, что введённое значение в пределах допустимого диапазона
+    function validateGlobalRanges() {
+        let isValid = true;
+        let errors = [];
+
+        // Проверяем параметры X1-X18
+        for (let i = 1; i <= 18; i++) {
+            const input = document.getElementById(`X${i}`);
+            if (!input) continue;
+
+            const value = parseFloat(input.value);
+            const range = allowedRanges.pR[`X${i}`];
+            const [minVal, maxVal] = range;
+
+            input.style.borderColor = ''; // сброс
+
+            if (isNaN(value)) continue;
+            if (value < minVal || value > maxVal) {
+                input.style.borderColor = '#e74c3c';
+                errors.push(`X${i} (допустимо от ${minVal} до ${maxVal})`);
+                isValid = false;
             }
-
-            // Проверяем константы
-            for (const constName in allowedRanges.constants) {
-                const input = document.getElementById(constName);
-                if (!input) continue;
-
-                const value = parseFloat(input.value);
-                const [minVal, maxVal] = allowedRanges.constants[constName];
-                input.style.borderColor = ''; // сброс
-
-                if (isNaN(value)) continue;
-                if (value < minVal || value > maxVal) {
-                    input.style.borderColor = '#e74c3c';
-                    errors.push(`${constName} (допустимо от ${minVal} до ${maxVal})`);
-                    isValid = false;
-                }
-            }
-
-            if (!isValid) {
-                showMessage(
-                    `Ошибка: значения параметра выходят за допустимые пределы: ${errors}`,
-                    'error',
-                    7000
-                );
-            }
-
-            return isValid;
         }
 
-        // Построение диаграмм с проверками данных
-        document.getElementById('plotBtn').addEventListener('click', function () {
-            if (!validateParameterValues()) return;
-            if (!validateGlobalRanges()) return;
+        // Проверяем константы
+        for (const constName in allowedRanges.constants) {
+            const input = document.getElementById(constName);
+            if (!input) continue;
 
-            const formData = getFormData();
-            fetch('/plot2', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+            const value = parseFloat(input.value);
+            const [minVal, maxVal] = allowedRanges.constants[constName];
+            input.style.borderColor = ''; // сброс
+
+            if (isNaN(value)) continue;
+            if (value < minVal || value > maxVal) {
+                input.style.borderColor = '#e74c3c';
+                errors.push(`${constName} (допустимо от ${minVal} до ${maxVal})`);
+                isValid = false;
+            }
+        }
+
+        if (!isValid) {
+            showMessage(
+                `Ошибка: значения параметра выходят за допустимые пределы: ${errors.join(', ')}`,
+                'error',
+                7000
+            );
+        }
+
+        return isValid;
+    }
+
+    // Построение диаграмм с проверками данных
+    document.getElementById('plotBtn').addEventListener('click', function () {
+        if (!validateParameterValues()) return;
+        if (!validateGlobalRanges()) return;
+
+        const formData = getFormData();
+        fetch('/plot2', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('timeSeriesImg').src = 'data:image/png;base64,' + data.time_series;
+                    document.getElementById('radarChartsImg').src = 'data:image/png;base64,' + data.radar_charts;
+                    document.getElementById('diagramsContainer').style.display = 'block';
+                    showMessage('Диаграммы успешно построены', 'success');
+                } else {
+                    showMessage(data.message, 'error');
+                }
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        document.getElementById('timeSeriesImg').src = 'data:image/png;base64,' + data.time_series;
-                        document.getElementById('radarChartsImg').src = 'data:image/png;base64,' + data.radar_charts;
-                        document.getElementById('diagramsContainer').style.display = 'block';
-                        showMessage('Диаграммы успешно построены', 'success');
-                    } else {
-                        showMessage(data.message, 'error');
-                    }
-                })
-                .catch(() => showMessage('Ошибка при построении диаграмм', 'error'));
-        });
-    </script>
+            .catch(() => showMessage('Ошибка при построении диаграмм', 'error'));
+    });
+</script>
 </body>
 
 </html>
