@@ -33,7 +33,7 @@ class Calculator2:
             "X18": "Количество балок, сданных ОТК с первого предъявления"
         }
         # временные точки
-        self.time_points = np.linspace(0, 1, 300)
+        self.time_points = np.linspace(0, 10, 300)
         # переменная для решения системы
         self.solution = None
         # диапазоны значений для параметров системы: (мин, макс, кол-во знаков после запятой)
@@ -145,14 +145,16 @@ class Calculator2:
 
         return a3*x**3 + a2*x**2 + a1*x + a0
 
-    # система дифференциальных уравнений
     def system_equations(self, t, X):
         try:
             dXdt = np.zeros(18)
             params = self.parameters_norm
 
+            # Масштабируем время для согласованности с нормализованным отображением
+            t_scaled = t / 10.0  # т.к. общее время 10 единиц
+
             # Добавляем плавные ограничения для предотвращения резких скачков
-            smooth_clip = lambda x: np.tanh(x) * 0.5 + 0.5  # Плавное ограничение от 0 до 1
+            smooth_clip = lambda x: np.tanh(x) * 0.5 + 0.5
 
             # уравнения системы с правильными зависимостями
             dXdt[0] = smooth_clip(params['Rw'] * self.polynomial_value(X[2], 1) * self.polynomial_value(X[10], 2) * \
@@ -206,7 +208,7 @@ class Calculator2:
 
             # Мягкое ограничение производных для плавности
             for i in range(18):
-                dXdt[i] = np.clip(dXdt[i], -2, 2) * 0.1  # Уменьшаем скорость изменений
+                dXdt[i] = np.clip(dXdt[i], -2, 2) * 0.1 * (1 + t_scaled)  # плавное изменение скорости
 
             return dXdt
 
@@ -214,16 +216,15 @@ class Calculator2:
             print(f"Ошибка в вычислении производных: {e}")
             return np.zeros(18)
 
-    # решение системы дифференциальных уравнений
     def solve_system(self):
         try:
             # начальные условия из параметров
             X0 = [self.parameters_norm[f"X{i}"] for i in range(1, 19)]
 
-            # решение системы с правильным временным интервалом
+            # решение системы с увеличенным временным интервалом
             self.solution = solve_ivp(
                 self.system_equations,
-                [0, 1],  # изменено с 10 на 1
+                [0, 10],  # было [0, 1] - увеличиваем временной диапазон
                 X0,
                 t_eval=self.time_points,
                 method='RK45',
@@ -231,8 +232,14 @@ class Calculator2:
                 atol=1e-8
             )
 
-            # УБИРАЕМ случайные колебания - они создают "пульс"
-            # Вместо этого обеспечиваем плавность через систему уравнений
+            # Нормализуем время для отображения от 0 до 1
+            if hasattr(self, 'solution') and self.solution is not None:
+                # Сохраняем оригинальное время
+                self.original_time = self.solution.t.copy()
+                # Нормализуем время для отображения
+                self.solution.t = self.solution.t / self.solution.t[-1]
+
+            # Ограничиваем значения для стабильности
             self.solution.y = np.clip(self.solution.y, 0, 1.2)
 
             return self.solution
@@ -244,6 +251,7 @@ class Calculator2:
     def plot_time_series(self):
         if self.solution is None:
             self.solve_system()
+
         # создаем график, состоящий из трех подграфиков
         fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=True)
         colors = plt.cm.tab20(np.linspace(0, 1, 18))
@@ -255,27 +263,31 @@ class Calculator2:
         for ax_idx, (start, end) in enumerate(groups):
             ax = axes[ax_idx]
             for i in range(start, end):
-                t = self.solution.t
+                t = self.solution.t  # уже нормализованное время (0-1)
                 y = self.solution.y[i]
-                # считаем функцию для кривой Хn  
+
+                # считаем функцию для кривой Хn по нормализованному времени
                 coeffs = np.polyfit(t, y, deg=3)
                 a3, a2, a1, a0 = coeffs
                 func_descriptions.append(
                     f"X{i+1}(t) = {round(a3, 6)}·t³ + {round(a2, 6)}·t² + {round(a1, 6)}·t + {round(a0, 6)}"
                 )
-                # рисуем кривую, обрезаем ее значение, если оно стало больше 1.15 по у, и подписываем ее
-                y = [val for val in self.solution.y[i] if val <= 1.15]
+
+                # рисуем кривую
                 y_label = self.names[f'X{i+1}']
-                ax.plot(self.solution.t[:len(y)], y, label=f'X{i+1} ({y_label})', color=colors[i], linewidth=2)
+                ax.plot(t, y, label=f'X{i+1} ({y_label})', color=colors[i], linewidth=2)
+
+                # добавляем подписи в конечной точке
                 if len(y) > 0:
-                    ax.text(self.solution.t[len(y)-1]+0.015, y[-1]+0.015, f'X{i+1}', color="black",
+                    ax.text(t[-1] + 0.015, y[-1] + 0.015, f'X{i+1}', color="black",
                             fontsize=10, va='center')
 
             ax.set_title(f'X{start+1}–X{end}', fontsize=14)
-            ax.set_xlabel('Время', fontsize=10)
+            ax.set_xlabel('Нормализованное время', fontsize=10)  # обновили подпись
             if ax_idx == 0:
-                ax.set_ylabel('Значение параметра', fontsize=10)
+                ax.set_ylabel('Нормализованное значение', fontsize=10)
             ax.grid(True, alpha=0.3)
+            ax.set_xlim(0, 1)  # гарантируем диапазон 0-1 по X
             ax.set_ylim(0, 1.2)
 
         # объединяем все легенды
@@ -320,9 +332,12 @@ class Calculator2:
         fig, axes = plt.subplots(2, 3, figsize=(15, 10), subplot_kw=dict(polar=True))
         axes = axes.flatten()
         colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
-        # красный контур — максимальные пределы
-        max_values = [self.parameters_norm.get(f"X{i+1}_max", 1) for i in range(18)]
+
+        # ИСПРАВЛЕНИЕ: используем фактические максимальные значения из решения системы
+        # Берем максимальные значения по всем временным точкам для каждого параметра
+        max_values = np.max(self.solution.y, axis=1).tolist()
         max_values += max_values[:1]
+
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
             if i >= len(time_points):
                 break
@@ -332,7 +347,7 @@ class Calculator2:
             ax.set_theta_direction(-1)
             ax.plot(angles, values, color=colors[i], linewidth=2, linestyle='solid')
             ax.fill(angles, values, color=colors[i], alpha=0.25)
-            # Добавляем красный контур максимальных пределов
+            # Добавляем красный контур максимальных достигнутых значений
             ax.plot(angles, max_values, color='red', linewidth=2, linestyle='dashed', label='Максимум')
             ax.set_xticks(angles[:-1])
             ax.set_xticklabels(categories, fontsize=8)
@@ -341,8 +356,14 @@ class Calculator2:
             ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], color="grey", size=8)
             ax.set_ylim(0, 1)
             ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color=colors[i], pad=10)
+
+        # Добавляем легенду только на первый график
+        if len(axes) > 0:
+            axes[0].legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+
         for i in range(len(time_points), len(axes)):
             fig.delaxes(axes[i])
+
         plt.tight_layout()
         radar_buffer = io.BytesIO()
         plt.savefig(radar_buffer, format='png', dpi=100, bbox_inches='tight')
