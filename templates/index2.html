@@ -65,8 +65,10 @@
                                value="{{ parameters.get('X' ~ i, '') }}"
                                placeholder="От {{ ranges['X' ~ i][0] }} до {{ ranges['X' ~ i][1] }}">
                     </td>
-                    <td>{{ ranges['X' ~ i][0] }}</td>
-                    <td>{{ ranges['X' ~ i][1] }}</td>
+                    <td><input type="number" min="0" id="X{{ i }}_min"
+                               value="{{ parameters.get('X' ~ i ~ '_min', '') }}"></td>
+                    <td><input type="number" min="0" id="X{{ i }}_max"
+                               value="{{ parameters.get('X' ~ i ~ '_max', '') }}"></td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -84,8 +86,6 @@
                     <th>Константа</th>
                     <th>Название</th>
                     <th>Значение</th>
-                    <th>Мин.</th>
-                    <th>Макс.</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -145,8 +145,6 @@
                                placeholder="От {{ min_val }} до {{ max_val }}"
                                value="{{ parameters.get(const_name, '') }}">
                     </td>
-                    <td>{{ min_val }}</td>
-                    <td>{{ max_val }}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -345,7 +343,6 @@
                 minInput.style.borderColor = '#e74c3c';
             }
         }
-        // Если какие-то поля пустые, ничего не подсвечиваем
     }
 
     // Добавляем обработчики событий для проверки при вводе и потере фокуса
@@ -367,7 +364,7 @@
         const inputs = document.querySelectorAll('input');
         inputs.forEach(input => {
             input.value = '';
-            input.style.borderColor = ''; // Сбрасываем цвет границы
+            input.style.borderColor = '';
         });
         document.getElementById('diagramsContainer').style.display = 'none';
 
@@ -403,7 +400,7 @@
                         const input = document.getElementById(key);
                         if (input) {
                             input.value = value;
-                            input.style.borderColor = ''; // Сбрасываем цвет границы
+                            input.style.borderColor = '';
                         }
                     }
                     showMessage('Значения заполнены случайными данными', 'success');
@@ -414,7 +411,7 @@
             });
     });
 
-    // Диапазоны значений из self.pR
+    // Диапазоны значений
     const allowedRanges = {
         pR: {
             X1: [0, 10], X2: [0, 8], X3: [0, 20], X4: [0, 3], X5: [0, 1],
@@ -445,35 +442,26 @@
         // Проверяем параметры X1-X18
         for (let i = 1; i <= 18; i++) {
             const input = document.getElementById(`X${i}`);
+            const input_min = document.getElementById(`X${i}_min`);
+            const input_max = document.getElementById(`X${i}_max`);
             if (!input) continue;
 
             const value = parseFloat(input.value);
+            const value_min = parseFloat(input_min.value);
+            const value_max = parseFloat(input_max.value);
             const range = allowedRanges.pR[`X${i}`];
             const [minVal, maxVal] = range;
 
-            input.style.borderColor = ''; // сброс
+            input.style.borderColor = '';
+            input_min.style.borderColor = '';
+            input_max.style.borderColor = '';
 
             if (isNaN(value)) continue;
-            if (value < minVal || value > maxVal) {
+            if ((value < minVal || value > maxVal) || (value_min < minVal || value_min > maxVal) || (value_max < minVal || value_max > maxVal)) {
                 input.style.borderColor = '#e74c3c';
+                input_min.style.borderColor = '#e74c3c';
+                input_max.style.borderColor = '#e74c3c';
                 errors.push(`X${i} (допустимо от ${minVal} до ${maxVal})`);
-                isValid = false;
-            }
-        }
-
-        // Проверяем константы
-        for (const constName in allowedRanges.constants) {
-            const input = document.getElementById(constName);
-            if (!input) continue;
-
-            const value = parseFloat(input.value);
-            const [minVal, maxVal] = allowedRanges.constants[constName];
-            input.style.borderColor = ''; // сброс
-
-            if (isNaN(value)) continue;
-            if (value < minVal || value > maxVal) {
-                input.style.borderColor = '#e74c3c';
-                errors.push(`${constName} (допустимо от ${minVal} до ${maxVal})`);
                 isValid = false;
             }
         }
@@ -515,5 +503,4 @@
     });
 </script>
 </body>
-
 </html>

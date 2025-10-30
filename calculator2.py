@@ -6,7 +6,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import random
-import os
 import io
 import base64
 
@@ -68,33 +67,30 @@ class Calculator2:
     def generate_system_parameters(self):
         parameters = {}
 
-        # параметры X1-X18 (только основные значения, без min/max)
+        # параметры X1-X18
         for i in range(1, 19):
             param_name = f"X{i}"
             min_r, max_r, dec = self.pR[param_name]
-
-            # Генерируем только основное значение
-            base_value = round(random.uniform(min_r, max_r), dec)
-
-            # Проверка и приведение в допустимый диапазон
-            base_value = min(max(base_value, min_r), max_r)
-
+            base_min_val = min_r + ((max_r - min_r) * 0.05)
+            base_value = round(random.uniform(base_min_val, max_r), dec)
+            min_value = round(random.uniform(min_r, base_value), dec) if base_value > min_r else min_r
+            max_value = round(random.uniform(base_value, max_r), dec) if base_value < max_r else max_r
             parameters[param_name] = base_value
-            # Убрали генерацию X{i}_min и X{i}_max
+            parameters[f"{param_name}_min"] = min_value
+            parameters[f"{param_name}_max"] = max_value
 
-        # константы (остается без изменений)
+        # константы
         for const_name, (min_val, max_val, dec_places) in self.constants.items():
             parameters[const_name] = round(random.uniform(min_val, max_val), dec_places)
 
-        # коэффициенты для полиномиальных функций f1-f36 (остается без изменений)
+        #полиномы
         for i in range(1, 37):
-            parameters[f"f{i}_a3"] = round(random.uniform(-2.0, 2.0), 6)
-            parameters[f"f{i}_a2"] = round(random.uniform(-3.0, 3.0), 6)
-            parameters[f"f{i}_a1"] = round(random.uniform(1.0, 5.0), 6)
-            parameters[f"f{i}_a0"] = round(random.uniform(0.5, 2.0), 6)
+            parameters[f"f{i}_a3"] = round(random.uniform(-2.0, 2.0), 6)  # увеличенный диапазон для кубического члена
+            parameters[f"f{i}_a2"] = round(random.uniform(-1.5, 1.5), 6)  # увеличенный диапазон для квадратичного члена
+            parameters[f"f{i}_a1"] = round(random.uniform(0.1, 3.0), 6)   # широкий диапазон для линейного члена
+            parameters[f"f{i}_a0"] = round(random.uniform(-0.5, 1.5), 6)  # разрешаем отрицательные значения
 
         return parameters
-
 
     def generate_valid_parameters(self):
         # максимум 10 попыток
@@ -119,15 +115,15 @@ class Calculator2:
             param_name = f"X{i+1}"
             min_val, max_val, _ = self.pR[param_name]
 
-            # Нормализуем только основное значение (min/max больше не используются)
+            # Нормализуем основное значение
             if param_name in params_norm:
                 params_norm[param_name] = (params_norm[param_name] - min_val) / (max_val - min_val)
 
-            # Удаляем min/max значения если они есть (они больше не нужны)
+            # Нормализуем минимумы и максимумы
             if f"{param_name}_min" in params_norm:
-                del params_norm[f"{param_name}_min"]
+                params_norm[f"{param_name}_min"] = (params_norm[f"{param_name}_min"] - min_val) / (max_val - min_val)
             if f"{param_name}_max" in params_norm:
-                del params_norm[f"{param_name}_max"]
+                params_norm[f"{param_name}_max"] = (params_norm[f"{param_name}_max"] - min_val) / (max_val - min_val)
 
         # Нормализация констант
         for const_name, (min_val, max_val, _) in self.constants.items():
@@ -136,7 +132,7 @@ class Calculator2:
 
         return params_norm
 
-    # вычисление значения полинома f_n(x) = a3*x^3 + a2*x^2 + a1*x + a0
+    # вычисление значения полинома
     def polynomial_value(self, x, fn_index):
         a3 = self.parameters.get(f"f{fn_index}_a3", 0)
         a2 = self.parameters.get(f"f{fn_index}_a2", 0)
@@ -150,65 +146,96 @@ class Calculator2:
             dXdt = np.zeros(18)
             params = self.parameters_norm
 
-            # Масштабируем время для согласованности с нормализованным отображением
-            t_scaled = t / 10.0  # т.к. общее время 10 единиц
+            # Масштабируем время
+            t_scaled = t / 10.0
 
-            # Добавляем плавные ограничения для предотвращения резких скачков
-            smooth_clip = lambda x: np.tanh(x) * 0.5 + 0.5
+            def nonlinear_growth(current_value, raw_rate, index):
+                frequency = 0.5 + index * 0.3
+                phase_shift = index * 0.5
 
-            # уравнения системы с правильными зависимостями
-            dXdt[0] = smooth_clip(params['Rw'] * self.polynomial_value(X[2], 1) * self.polynomial_value(X[10], 2) * \
-                                  self.polynomial_value(X[11], 3) * self.polynomial_value(X[12], 4) - \
-                                  params['Nst'] * self.polynomial_value(X[1], 5) * self.polynomial_value(X[7], 6) * \
-                                  self.polynomial_value(X[16], 7))
+                oscillation = 0.3 * np.sin(frequency * t_scaled * 2 * np.pi + phase_shift)
+                nonlinear_mod = 1.0 + 0.5 * np.tanh(2 * (current_value - 0.5))
 
-            dXdt[1] = smooth_clip((params['O0'] + params['Oin']) * self.polynomial_value(X[16], 12) - \
-                                  (params['Sm'] + params['Rw'] + params['Oout']))
+                modulated_rate = raw_rate * nonlinear_mod + oscillation * 0.1
 
-            dXdt[2] = smooth_clip(params['Nst'] / max(params['Rw'], 0.001) * self.polynomial_value(X[9], 8) * \
-                                  self.polynomial_value(X[14], 9) * self.polynomial_value(X[15], 10) - \
-                                  params['S_star'] * self.polynomial_value(X[1], 11))
+                # Ограничиваем максимальную скорость с учетом положения
+                max_rate = 0.15
+                if current_value > 0.7:
+                    max_rate = max_rate * (1.0 - current_value) * 3
+                elif current_value < 0.3:
+                    max_rate = max_rate * current_value * 3
 
-            dXdt[3] = smooth_clip(params['Ld'] * self.polynomial_value(X[14], 13) * self.polynomial_value(X[15], 14) - \
-                                  params['L_star'] * self.polynomial_value(X[1], 15))
+                limited_rate = np.clip(modulated_rate, -max_rate, max_rate)
 
-            dXdt[4] = smooth_clip(params['Mf'] * self.polynomial_value(X[5], 16) * self.polynomial_value(X[6], 17) - \
-                                  params['Mp'] * self.polynomial_value(X[9], 18))
+                return limited_rate
 
-            dXdt[5] = smooth_clip((params['P0'] + params['Pin']) * self.polynomial_value(X[16], 19) - \
-                                  (params['Sm'] + params['Rw'] + params['Pout']))
+            # уравнения системы
+            dXdt[0] = nonlinear_growth(X[0],
+                                       params['Rw'] * self.polynomial_value(X[2], 1) * self.polynomial_value(X[10], 2) * \
+                                       self.polynomial_value(X[11], 3) * self.polynomial_value(X[12], 4) - \
+                                       params['Nst'] * self.polynomial_value(X[1], 5) * self.polynomial_value(X[7], 6) * \
+                                       self.polynomial_value(X[16], 7), 0)
 
-            dXdt[6] = smooth_clip((params['R0'] + params['Rin']) * self.polynomial_value(X[16], 20) - \
-                                  (params['Sm'] + params['Rw'] + params['Rout']))
+            dXdt[1] = nonlinear_growth(X[1],
+                                       (params['O0'] + params['Oin']) * self.polynomial_value(X[16], 12) - \
+                                       (params['Sm'] + params['Rw'] + params['Oout']), 1)
 
-            dXdt[7] = smooth_clip((params['C0'] + params['Cin']) * self.polynomial_value(X[16], 21) - \
-                                  (params['Sm'] + params['Rw'] + params['Cout']))
+            dXdt[2] = nonlinear_growth(X[2],
+                                       params['Nst'] / max(params['Rw'], 0.001) * self.polynomial_value(X[9], 8) * \
+                                       self.polynomial_value(X[14], 9) * self.polynomial_value(X[15], 10) - \
+                                       params['S_star'] * self.polynomial_value(X[1], 11), 2)
 
-            dXdt[8] = smooth_clip((params['T0'] + params['Tin']) * self.polynomial_value(X[16], 22) - params['Tout'])
+            dXdt[3] = nonlinear_growth(X[3],
+                                       params['Ld'] * self.polynomial_value(X[14], 13) * self.polynomial_value(X[15], 14) - \
+                                       params['L_star'] * self.polynomial_value(X[1], 15), 3)
 
-            dXdt[9] = smooth_clip((params['Nr'] + params['Df']) * self.polynomial_value(X[16], 23) - params['Dp'])
+            dXdt[4] = nonlinear_growth(X[4],
+                                       params['Mf'] * self.polynomial_value(X[5], 16) * self.polynomial_value(X[6], 17) - \
+                                       params['Mp'] * self.polynomial_value(X[9], 18), 4)
 
-            dXdt[10] = smooth_clip(params['DeltaU'] - params['Delta_star_U'] * self.polynomial_value(X[4], 24))
+            dXdt[5] = nonlinear_growth(X[5],
+                                       (params['P0'] + params['Pin']) * self.polynomial_value(X[16], 19) - \
+                                       (params['Sm'] + params['Rw'] + params['Pout']), 5)
 
-            dXdt[11] = smooth_clip(params['DeltaI'] - params['Delta_star_I'] * self.polynomial_value(X[4], 25))
+            dXdt[6] = nonlinear_growth(X[6],
+                                       (params['R0'] + params['Rin']) * self.polynomial_value(X[16], 20) - \
+                                       (params['Sm'] + params['Rw'] + params['Rout']), 6)
 
-            dXdt[12] = smooth_clip(params['DeltaT'] - params['Delta_star_T'] * self.polynomial_value(X[4], 26))
+            dXdt[7] = nonlinear_growth(X[7],
+                                       (params['C0'] + params['Cin']) * self.polynomial_value(X[16], 21) - \
+                                       (params['Sm'] + params['Rw'] + params['Cout']), 7)
 
-            dXdt[13] = smooth_clip(params['Tdf'] * self.polynomial_value(X[8], 27) - params['Tdp'])
+            dXdt[8] = nonlinear_growth(X[8],
+                                       (params['T0'] + params['Tin']) * self.polynomial_value(X[16], 22) - params['Tout'], 8)
 
-            dXdt[14] = smooth_clip(params['DeltaPG'] - params['Delta_star_PG'] * self.polynomial_value(X[16], 28))
+            dXdt[9] = nonlinear_growth(X[9],
+                                       (params['Nr'] + params['Df']) * self.polynomial_value(X[16], 23) - params['Dp'], 9)
 
-            dXdt[15] = smooth_clip(params['DeltaPV'] - params['Delta_star_PV'] * self.polynomial_value(X[16], 29))
+            dXdt[10] = nonlinear_growth(X[10],
+                                        params['DeltaU'] - params['Delta_star_U'] * self.polynomial_value(X[4], 24), 10)
 
-            dXdt[16] = smooth_clip(params['NTP'] * self.polynomial_value(X[8], 30) - params['Rw'])
+            dXdt[11] = nonlinear_growth(X[11],
+                                        params['DeltaI'] - params['Delta_star_I'] * self.polynomial_value(X[4], 25), 11)
 
-            dXdt[17] = smooth_clip(params['Nd'] * self.polynomial_value(X[5], 31) * self.polynomial_value(X[6], 32) * \
-                                   self.polynomial_value(X[7], 33) * self.polynomial_value(X[13], 34) - \
-                                   (params['Ab'] + params['Ld']) * self.polynomial_value(X[0], 35) * self.polynomial_value(X[3], 36))
+            dXdt[12] = nonlinear_growth(X[12],
+                                        params['DeltaT'] - params['Delta_star_T'] * self.polynomial_value(X[4], 26), 12)
 
-            # Мягкое ограничение производных для плавности
-            for i in range(18):
-                dXdt[i] = np.clip(dXdt[i], -2, 2) * 0.1 * (1 + t_scaled)  # плавное изменение скорости
+            dXdt[13] = nonlinear_growth(X[13],
+                                        params['Tdf'] * self.polynomial_value(X[8], 27) - params['Tdp'], 13)
+
+            dXdt[14] = nonlinear_growth(X[14],
+                                        params['DeltaPG'] - params['Delta_star_PG'] * self.polynomial_value(X[16], 28), 14)
+
+            dXdt[15] = nonlinear_growth(X[15],
+                                        params['DeltaPV'] - params['Delta_star_PV'] * self.polynomial_value(X[16], 29), 15)
+
+            dXdt[16] = nonlinear_growth(X[16],
+                                        params['NTP'] * self.polynomial_value(X[8], 30) - params['Rw'], 16)
+
+            dXdt[17] = nonlinear_growth(X[17],
+                                        params['Nd'] * self.polynomial_value(X[5], 31) * self.polynomial_value(X[6], 32) * \
+                                        self.polynomial_value(X[7], 33) * self.polynomial_value(X[13], 34) - \
+                                        (params['Ab'] + params['Ld']) * self.polynomial_value(X[0], 35) * self.polynomial_value(X[3], 36), 17)
 
             return dXdt
 
@@ -221,10 +248,12 @@ class Calculator2:
             # начальные условия из параметров
             X0 = [self.parameters_norm[f"X{i}"] for i in range(1, 19)]
 
-            # решение системы с увеличенным временным интервалом
+            self.time_points = np.linspace(0, 10, 500)
+
+            # решение системы
             self.solution = solve_ivp(
                 self.system_equations,
-                [0, 10],  # было [0, 1] - увеличиваем временной диапазон
+                [0, 10],
                 X0,
                 t_eval=self.time_points,
                 method='RK45',
@@ -234,13 +263,8 @@ class Calculator2:
 
             # Нормализуем время для отображения от 0 до 1
             if hasattr(self, 'solution') and self.solution is not None:
-                # Сохраняем оригинальное время
                 self.original_time = self.solution.t.copy()
-                # Нормализуем время для отображения
                 self.solution.t = self.solution.t / self.solution.t[-1]
-
-            # Ограничиваем значения для стабильности
-            self.solution.y = np.clip(self.solution.y, 0, 1.2)
 
             return self.solution
 
@@ -263,7 +287,7 @@ class Calculator2:
         for ax_idx, (start, end) in enumerate(groups):
             ax = axes[ax_idx]
             for i in range(start, end):
-                t = self.solution.t  # уже нормализованное время (0-1)
+                t = self.solution.t
                 y = self.solution.y[i]
 
                 # считаем функцию для кривой Хn по нормализованному времени
@@ -277,18 +301,38 @@ class Calculator2:
                 y_label = self.names[f'X{i+1}']
                 ax.plot(t, y, label=f'X{i+1} ({y_label})', color=colors[i], linewidth=2)
 
-                # добавляем подписи в конечной точке
-                if len(y) > 0:
-                    ax.text(t[-1] + 0.015, y[-1] + 0.015, f'X{i+1}', color="black",
-                            fontsize=10, va='center')
+                if len(t) > 10:
+                    idx = int(len(t) * 0.02)
+                    x_text = t[idx]
+                    y_text = y[idx]
+
+                    # Смещаем подпись немного перпендикулярно кривой, чтобы не закрывала линию
+                    if idx > 0:
+                        dy = y[idx] - y[idx - 1]
+                        offset = 0.02 if dy >= 0 else -0.02
+                    else:
+                        offset = 0.0
+
+                    ax.text(
+                        x_text,
+                        y_text + offset,
+                        f'X{i+1}',
+                        color='black',
+                        fontsize=10,
+                        fontweight='bold',
+                        ha='left',
+                        va='center',
+                        alpha=0.9,
+                        bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=1)
+                    )
 
             ax.set_title(f'X{start+1}–X{end}', fontsize=14)
-            ax.set_xlabel('Нормализованное время', fontsize=10)  # обновили подпись
+            ax.set_xlabel('Время', fontsize=10)
             if ax_idx == 0:
-                ax.set_ylabel('Нормализованное значение', fontsize=10)
+                ax.set_ylabel('Значение параметра', fontsize=10)
             ax.grid(True, alpha=0.3)
-            ax.set_xlim(0, 1)  # гарантируем диапазон 0-1 по X
-            ax.set_ylim(0, 1.2)
+            ax.set_xlim(0, 1)
+            ax.set_ylim(-0.05, 1.05)
 
         # объединяем все легенды
         handles, labels = [], []
@@ -333,9 +377,7 @@ class Calculator2:
         axes = axes.flatten()
         colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
 
-        # ИСПРАВЛЕНИЕ: используем фактические максимальные значения из решения системы
-        # Берем максимальные значения по всем временным точкам для каждого параметра
-        max_values = np.max(self.solution.y, axis=1).tolist()
+        max_values = [self.parameters_norm.get(f"X{i+1}_max", 1) for i in range(18)]
         max_values += max_values[:1]
 
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
@@ -347,23 +389,17 @@ class Calculator2:
             ax.set_theta_direction(-1)
             ax.plot(angles, values, color=colors[i], linewidth=2, linestyle='solid')
             ax.fill(angles, values, color=colors[i], alpha=0.25)
-            # Добавляем красный контур максимальных достигнутых значений
+            # Добавляем красный контур максимальных пределов
             ax.plot(angles, max_values, color='red', linewidth=2, linestyle='dashed', label='Максимум')
             ax.set_xticks(angles[:-1])
             ax.set_xticklabels(categories, fontsize=8)
             ax.set_rlabel_position(0)
-            ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
-            ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], color="grey", size=8)
-            ax.set_ylim(0, 1)
+            ax.set_yticks([-0.05, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.05])
+            ax.set_yticklabels(["-0.05", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0", "1.05"], color="grey", size=8)
+            ax.set_ylim(-0.05, 1.05)  # было (0, 1)
             ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color=colors[i], pad=10)
-
-        # Добавляем легенду только на первый график
-        if len(axes) > 0:
-            axes[0].legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-
         for i in range(len(time_points), len(axes)):
             fig.delaxes(axes[i])
-
         plt.tight_layout()
         radar_buffer = io.BytesIO()
         plt.savefig(radar_buffer, format='png', dpi=100, bbox_inches='tight')

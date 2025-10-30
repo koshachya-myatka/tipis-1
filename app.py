@@ -17,29 +17,24 @@ def init_calculator():
     return CALCULATOR.parameters
 
 
-def update_calculator2_from_form(form_data):
-    global CALCULATOR2
-    CALCULATOR2.parameters = {}
+# обновление параметров калькулятора из данных формы
+def update_calculator_from_form(form_data):
+    global CALCULATOR
+    # Инициализируем калькулятор, если он еще не создан
+    if CALCULATOR is None:
+        init_calculator()
+
+    CALCULATOR.parameters = {}
     for key, value in form_data.items():
         if value and value != "":
             try:
                 if "." in value:
-                    CALCULATOR2.parameters[key] = float(value)
+                    CALCULATOR.parameters[key] = float(value)
                 else:
-                    CALCULATOR2.parameters[key] = int(value)
+                    CALCULATOR.parameters[key] = int(value)
             except ValueError:
-                CALCULATOR2.parameters[key] = value
-
-    # Убедимся, что все необходимые X параметры присутствуют
-    for i in range(1, 19):
-        param_name = f"X{i}"
-        if param_name not in CALCULATOR2.parameters:
-            # Если параметр отсутствует, установим значение по умолчанию
-            min_val, max_val, _ = CALCULATOR2.pR[param_name]
-            CALCULATOR2.parameters[param_name] = (min_val + max_val) / 2
-
-    CALCULATOR2.parameters_norm = CALCULATOR2._get_normalized(CALCULATOR2.parameters)
-    return CALCULATOR2.parameters
+                CALCULATOR.parameters[key] = value
+    return CALCULATOR.parameters
 
 
 # главная страница и внедрение модели калькулятора
@@ -88,7 +83,6 @@ def plot_diagrams():
             }
         )
 
-    # обновляем калькулятор из формы
     update_calculator_from_form(form_data)
 
     # создаем картинки диаграмм и выводим их
@@ -117,6 +111,10 @@ def init_calculator2():
 # обновление параметров калькулятора2 из данных формы
 def update_calculator2_from_form(form_data):
     global CALCULATOR2
+    # Инициализируем калькулятор, если он еще не создан
+    if CALCULATOR2 is None:
+        init_calculator2()
+
     CALCULATOR2.parameters = {}
     for key, value in form_data.items():
         if value and value != "":
@@ -127,6 +125,30 @@ def update_calculator2_from_form(form_data):
                     CALCULATOR2.parameters[key] = int(value)
             except ValueError:
                 CALCULATOR2.parameters[key] = value
+
+    # Убедимся, что все необходимые X параметры присутствуют
+    for i in range(1, 19):
+        param_name = f"X{i}"
+        if param_name not in CALCULATOR2.parameters:
+            # Если параметр отсутствует, установим значение по умолчанию
+            min_val, max_val, _ = CALCULATOR2.pR[param_name]
+            CALCULATOR2.parameters[param_name] = (min_val + max_val) / 2
+
+    # Также убедимся, что присутствуют min/max значения
+    for i in range(1, 19):
+        param_name = f"X{i}"
+        min_name = f"{param_name}_min"
+        max_name = f"{param_name}_max"
+
+        if min_name not in CALCULATOR2.parameters:
+            min_val, max_val, _ = CALCULATOR2.pR[param_name]
+            CALCULATOR2.parameters[min_name] = min_val
+
+        if max_name not in CALCULATOR2.parameters:
+            min_val, max_val, _ = CALCULATOR2.pR[param_name]
+            CALCULATOR2.parameters[max_name] = max_val
+
+    # Обновляем нормализованные параметры
     CALCULATOR2.parameters_norm = CALCULATOR2._get_normalized(CALCULATOR2.parameters)
     return CALCULATOR2.parameters
 
@@ -182,7 +204,12 @@ def plot_diagrams2():
 
     # создаем картинки диаграмм и выводим их
     try:
-        time_series_b64, radar_b64 = CALCULATOR2.plot_all_results()
+        # Пересчитываем решение системы с новыми параметрами
+        CALCULATOR2.solve_system()
+
+        time_series_b64 = CALCULATOR2.plot_time_series()
+        radar_b64 = CALCULATOR2.plot_radar_charts()
+
         return jsonify(
             {
                 "status": "success",
