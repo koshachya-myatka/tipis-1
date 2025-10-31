@@ -373,13 +373,30 @@ class Calculator2:
         N = len(categories)
         angles = [n / float(N) * 2 * np.pi for n in range(N)]
         angles += angles[:1]
+
+        # Создаем фигуру аналогично первой функции
         fig, axes = plt.subplots(2, 3, figsize=(15, 10), subplot_kw=dict(polar=True))
         axes = axes.flatten()
-        colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
 
+        colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
         max_values = [self.parameters_norm.get(f"X{i+1}_max", 1) for i in range(18)]
         max_values += max_values[:1]
 
+        # Создаем кастомные элементы для легенды
+        from matplotlib.lines import Line2D
+        legend_elements = [
+            Line2D([0], [0], color='red', linewidth=2, linestyle='--', label='Предельные значения')
+        ]
+
+        # Легенда над графиками
+        fig.legend(handles=legend_elements,
+                   loc='upper center',
+                   ncol=1,
+                   fontsize=11,
+                   frameon=True,
+                   bbox_to_anchor=(0.5, 1.05))  # Тот же отступ, что и в первой функции
+
+        # Строим графики
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
             if i >= len(time_points):
                 break
@@ -396,11 +413,16 @@ class Calculator2:
             ax.set_rlabel_position(0)
             ax.set_yticks([-0.05, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.05])
             ax.set_yticklabels(["-0.05", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0", "1.05"], color="grey", size=8)
-            ax.set_ylim(-0.05, 1.05)  # было (0, 1)
-            ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color=colors[i], pad=10)
+            ax.set_ylim(-0.05, 1.05)
+            ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color='black', pad=10)
+
+        # Скрываем неиспользуемые subplots
         for i in range(len(time_points), len(axes)):
             fig.delaxes(axes[i])
+
+        # Используем тот же tight_layout без специальных rect параметров
         plt.tight_layout()
+
         radar_buffer = io.BytesIO()
         plt.savefig(radar_buffer, format='png', dpi=100, bbox_inches='tight')
         radar_buffer.seek(0)
