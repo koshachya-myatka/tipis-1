@@ -3,11 +3,18 @@ from flask import Flask, request, render_template, jsonify
 
 from calculator import Calculator
 from calculator2 import Calculator2
+from calculator3 import Calculator3
 
 app = Flask(__name__)
 
 CALCULATOR = None
 CALCULATOR2 = None
+CALCULATOR3 = None
+
+# Главная страница
+@app.route("/")
+def main():
+    return render_template("main.html")
 
 
 # инициализация калькулятора со случайными значениями
@@ -38,7 +45,7 @@ def update_calculator_from_form(form_data):
 
 
 # главная страница и внедрение модели калькулятора
-@app.route("/")
+@app.route("/lab1")
 def index():
     global CALCULATOR
     if CALCULATOR is None:
@@ -154,7 +161,7 @@ def update_calculator2_from_form(form_data):
 
 
 # главная страница и внедрение модели калькулятора2
-@app.route("/2")
+@app.route("/lab2")
 def index2():
     global CALCULATOR2
     if CALCULATOR2 is None:
@@ -217,6 +224,112 @@ def plot_diagrams2():
                 "radar_charts": radar_b64,
             }
         )
+    except Exception as e:
+        return jsonify(
+            {"status": "error", "message": f"Ошибка при построении графиков: {str(e)}"}
+        )
+
+
+def init_calculator3():
+    global CALCULATOR3
+    CALCULATOR3 = Calculator3()
+    return CALCULATOR3.parameters
+
+def update_calculator3_from_form(form_data):
+    global CALCULATOR3
+    if CALCULATOR3 is None:
+        init_calculator3()
+
+    CALCULATOR3.parameters = {}
+    for key, value in form_data.items():
+        if value and value != "":
+            try:
+                if "." in value:
+                    CALCULATOR3.parameters[key] = float(value)
+                else:
+                    CALCULATOR3.parameters[key] = int(value)
+            except ValueError:
+                CALCULATOR3.parameters[key] = value
+
+    # Убедимся, что все необходимые K параметры присутствуют
+    for i in range(1, 16):
+        param_name = f"K{i}"
+        if param_name not in CALCULATOR3.parameters:
+            min_val, max_val = CALCULATOR3.pR[param_name]
+            CALCULATOR3.parameters[param_name] = (min_val + max_val) / 2
+
+    # Также убедимся, что присутствуют max значения
+    for i in range(1, 16):
+        param_name = f"K{i}"
+        max_name = f"{param_name}_max"
+        if max_name not in CALCULATOR3.parameters:
+            min_val, max_val = CALCULATOR3.pR[param_name]
+            CALCULATOR3.parameters[max_name] = max_val
+
+    # Убедимся, что внешние воздействия R1-R4 присутствуют
+    for i in range(1, 5):
+        r_name = f"R{i}"
+        if r_name not in CALCULATOR3.parameters:
+            CALCULATOR3.parameters[r_name] = 0.5  # значение по умолчанию
+
+    # УБИРАЕМ проверку коэффициентов возмущений q1_a3 и т.д.
+
+    # Обновляем нормализованные параметры
+    CALCULATOR3.parameters_norm = CALCULATOR3._get_normalized(CALCULATOR3.parameters)
+    return CALCULATOR3.parameters
+
+@app.route("/lab3")
+def index3():
+    global CALCULATOR3
+    if CALCULATOR3 is None:
+        parameters = init_calculator3()
+    else:
+        parameters = CALCULATOR3.parameters
+
+    names = CALCULATOR3.names if CALCULATOR3 else {}
+    return render_template("index3.html", parameters=parameters, names=names)
+
+@app.route("/clear3", methods=["POST"])
+def clear_values3():
+    global CALCULATOR3
+    CALCULATOR3 = None
+    return jsonify({"status": "success"})
+
+@app.route("/random3", methods=["POST"])
+def random_values3():
+    parameters = init_calculator3()
+    return jsonify({"status": "success", "parameters": parameters})
+
+@app.route("/plot3", methods=["POST"])
+def plot_diagrams3():
+    global CALCULATOR3
+    form_data = request.json
+
+    empty_fields = []
+    for key, value in form_data.items():
+        if value == "":
+            empty_fields.append(key)
+    if empty_fields:
+        return jsonify({
+            "status": "error",
+            "message": "Не все поля заполнены",
+            "empty_fields": empty_fields,
+        })
+
+    update_calculator3_from_form(form_data)
+
+    try:
+        CALCULATOR3.solve_system()
+        time_series_b64 = CALCULATOR3.plot_time_series()
+        radar_b64 = CALCULATOR3.plot_radar_charts()
+        disturbances_b64 = CALCULATOR3.plot_disturbances()  # Новый график
+
+        return jsonify({
+            "status": "success",
+            "time_series": time_series_b64,
+            "radar_charts": radar_b64,
+            "disturbances": disturbances_b64  # Добавляем в ответ
+        })
     except Exception as e:
         return jsonify(
             {"status": "error", "message": f"Ошибка при построении графиков: {str(e)}"}

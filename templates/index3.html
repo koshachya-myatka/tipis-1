@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нефтеперерабатывающий завод</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+
+<body>
+<h1>Нефтеперерабатывающий завод</h1>
+<div id="messages"></div>
+<div class="tables-container">
+    <!-- Таблица параметров K1-K15 -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Параметры системы</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Параметр</th>
+                    <th>Название</th>
+                    <th>Начальное</th>
+                    <th>Макс.</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for i in range(1, 16) %}
+                {% set param_name = 'K' ~ i %}
+                <tr>
+                    <td>K<sub>{{ i }}</sub></td>
+                    <td>
+                        {% if param_name == 'K1' %}Время испарения химически опасных веществ в районе аварии с поверхности земли
+                        {% elif param_name == 'K2' %}Время ликвидации последствий аварии на химически опасном объекте
+                        {% elif param_name == 'K3' %}Площадь заражения в результате аварии
+                        {% elif param_name == 'K4' %}Время подхода первичного и/или вторичного облака к населенным пунктам
+                        {% elif param_name == 'K5' %}Потери от первичного облака
+                        {% elif param_name == 'K6' %}Потери от вторичного облака
+                        {% elif param_name == 'K7' %}Количество получивших амбулаторную помощь, чел.
+                        {% elif param_name == 'K8' %}Количество размещенных в стационаре и реанимации, чел.
+                        {% elif param_name == 'K9' %}Количество пораженной техники
+                        {% elif param_name == 'K10' %}Количество объемов и растворов для обеззараживания местности
+                        {% elif param_name == 'K11' %}Количество сил и средств, необходимых для проведения аварийно-спасательных работ
+                        {% elif param_name == 'K12' %}Эффективность системы оповещения, %.
+                        {% elif param_name == 'K13' %}Количество людей в зоне поражения
+                        {% elif param_name == 'K14' %}Количество спасателей в зоне поражения
+                        {% elif param_name == 'K15' %}Развитость системы МЧС
+                        {% endif %}
+                    </td>
+                    <td>
+                        <input type="number"
+                               min="0"
+                               id="K{{ i }}"
+                               value="{{ parameters.get('K' ~ i, '') }}">
+                    </td>
+                    <td>
+                        <input type="number"
+                               min="0"
+                               id="K{{ i }}_max"
+                               value="{{ parameters.get('K' ~ i ~ '_max', '') }}">
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Таблица внешних воздействий -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Значения внешних возмущений</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Возмущение</th>
+                    <th>Название</th>
+                    <th>Значение (0-1)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>R<sub>1</sub></td>
+                    <td>Уровень финансирования системы МЧС города</td>
+                    <td><input type="number" min="0" max="1" step="0.01" id="R1" value="{{ parameters.get('R1', '') }}"></td>
+                </tr>
+                <tr>
+                    <td>R<sub>2</sub></td>
+                    <td>Степень экономического развития города</td>
+                    <td><input type="number" min="0" max="1" step="0.01" id="R2" value="{{ parameters.get('R2', '') }}"></td>
+                </tr>
+                <tr>
+                    <td>R<sub>3</sub></td>
+                    <td>Наличие прибыли у предприятия</td>
+                    <td><input type="number" min="0" max="1" step="0.01" id="R3" value="{{ parameters.get('R3', '') }}"></td>
+                </tr>
+                <tr>
+                    <td>R<sub>4</sub></td>
+                    <td>Доля современного оборудования на предприятии</td>
+                    <td><input type="number" min="0" max="1" step="0.01" id="R4" value="{{ parameters.get('R4', '') }}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Таблица полиномов f1-f55 -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Внутренние функции</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Функция</th>
+                    <th>Формула</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% set function_params = [
+                "K₁₀", "K₁₁", "K₁₄",
+                "K₃", "K₇", "K₈", "K₉", "K₁₃", "K₁₀", "K₁₁", "K₁₄", "K₁₅",
+                "K₁", "K₁₅",
+                "K₁",
+                "K₁",
+                "K₄", "K₁₁", "K₁₂", "K₁₄",
+                "K₅", "K₆", "K₁₃", "K₁₅",
+                "K₅", "K₆", "K₁₁", "K₁₃", "K₁₄", "K₁₅",
+                "K₃", "K₁₃", "K₁₀", "K₁₁", "K₁₄",
+                "K₃", "K₉", "K₁₅",
+                "K₃", "K₁₃", "K₁₄", "K₁₅",
+                "K₁₁", "K₁₃", "K₁₄", "K₁₅",
+                "K₂", "K₃",
+                "K₁₁", "K₁₂", "K₁₃",
+                "K₂", "K₃", "K₁₃", "K₁₄"
+                ] %}
+
+                {% for i in range(1, 56) %}
+                <tr>
+                    <td>f<sub>{{ i }}</sub>({{ function_params[i-1] }})</td>
+                    <td class="formula-row">f<sub>{{ i }}</sub> =
+                        <input type="number" class="formula-input" id="f{{ i }}_a3" placeholder="a3" value="{{ parameters.get('f' ~ i ~ '_a3', '') }}"> * {{ function_params[i-1] }}³ +
+                        <input type="number" class="formula-input" id="f{{ i }}_a2" placeholder="a2" value="{{ parameters.get('f' ~ i ~ '_a2', '') }}"> * {{ function_params[i-1] }}² +
+                        <input type="number" class="formula-input" id="f{{ i }}_a1" placeholder="a1" value="{{ parameters.get('f' ~ i ~ '_a1', '') }}"> * {{ function_params[i-1] }} +
+                        <input type="number" class="formula-input" id="f{{ i }}_a0" placeholder="a0" value="{{ parameters.get('f' ~ i ~ '_a0', '') }}">
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="buttons-container">
+    <a href="{{ url_for('main') }}" class="home-button">На главную</a>
+    <button id="clearBtn">Очистить значения</button>
+    <button id="randomBtn">Случайные значения</button>
+    <button id="plotBtn">Построить диаграммы</button>
+</div>
+
+<div id="diagramsContainer" class="diagrams-container" style="display: none;">
+    <h2>Результаты моделирования</h2>
+    <div class="diagram">
+        <h3>График изменения параметров по времени</h3>
+        <img id="timeSeriesImg" src="" alt="График изменения параметров по времени">
+    </div>
+    <div class="diagram">
+        <h3>Лепестковые диаграммы</h3>
+        <img id="radarChartsImg" src="" alt="Лепестковые диаграммы">
+    </div>
+    <div class="diagram">
+        <h3>Внешние воздействия</h3>
+        <img id="disturbancesImg" src="" alt="Внешние воздействия">
+    </div>
+</div>
+
+<script>
+    // Функция для отображения сообщений
+    function showMessage(message, type, duration = 5000) {
+        const messagesDiv = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+        messageDiv.textContent = message;
+        messagesDiv.appendChild(messageDiv);
+        messageDiv.style.opacity = 0;
+        setTimeout(() => (messageDiv.style.opacity = 1), 50);
+        setTimeout(() => {
+            messageDiv.style.opacity = 0;
+            setTimeout(() => messageDiv.remove(), 500);
+        }, duration);
+    }
+
+    // Функция для получения всех значений из формы
+    function getFormData() {
+        const inputs = document.querySelectorAll('input');
+        const data = {};
+        inputs.forEach(input => {
+            data[input.id] = input.value;
+        });
+        return data;
+    }
+
+    // Функция для проверки значений параметров K1-K15 (обновленная - без минимумов)
+    function validateParameterValues() {
+        let isValid = true;
+        let invalidParams = [];
+
+        for (let i = 1; i <= 15; i++) {
+            const initialInput = document.getElementById(`K${i}`);
+            const maxInput = document.getElementById(`K${i}_max`);
+
+            if (!initialInput || !maxInput) continue;
+
+            const initValue = parseFloat(initialInput.value);
+            const maxValue = parseFloat(maxInput.value);
+
+            // Сбрасываем цвет перед проверкой
+            initialInput.style.borderColor = '';
+            maxInput.style.borderColor = '';
+
+            if (isNaN(initValue) || isNaN(maxValue)) continue;
+
+            let hasError = false;
+
+            // Проверяем: initial ≤ max
+            if (maxValue < initValue) {
+                maxInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+                hasError = true;
+            }
+
+            if (hasError) {
+                isValid = false;
+                invalidParams.push(`K${i}`);
+            }
+        }
+
+        if (!isValid) {
+            const list = invalidParams.join(', ');
+            showMessage(
+                `Ошибка: нарушено условие начальное ≤ max у параметров ${list}`,
+                'error'
+            );
+        }
+
+        return isValid;
+    }
+
+    // Проверка одного параметра K (обновленная - без минимумов)
+    function validateSingleParameter(index) {
+        const initialInput = document.getElementById(`K${index}`);
+        const maxInput = document.getElementById(`K${index}_max`);
+
+        if (!initialInput || !maxInput) return;
+
+        const initValue = parseFloat(initialInput.value);
+        const maxValue = parseFloat(maxInput.value);
+
+        // Сбрасываем цвета перед проверкой
+        [initialInput, maxInput].forEach(input => {
+            input.style.borderColor = '';
+        });
+
+        // Проверяем, если оба значения заданы
+        if (!isNaN(initValue) && !isNaN(maxValue)) {
+            if (maxValue < initValue) {
+                maxInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+            }
+        }
+    }
+
+    // Добавляем обработчики событий для проверки при вводе и потере фокуса (обновленные)
+    for (let i = 1; i <= 15; i++) {
+        const initialInput = document.getElementById(`K${i}`);
+        const maxInput = document.getElementById(`K${i}_max`);
+
+        [initialInput, maxInput].forEach(input => {
+            if (!input) return;
+            input.addEventListener('input', () => validateSingleParameter(i));
+            input.addEventListener('blur', () => validateSingleParameter(i));
+        });
+    }
+
+    // Очистка всех значений
+    document.getElementById('clearBtn').addEventListener('click', function () {
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.value = '';
+            input.style.borderColor = '';
+        });
+        document.getElementById('diagramsContainer').style.display = 'none';
+
+        fetch('/clear3', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage('Все значения очищены', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Ошибка при очистке значений', 'error');
+            });
+    });
+
+    // Случайные значения
+    document.getElementById('randomBtn').addEventListener('click', function () {
+        fetch('/random3', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    for (const [key, value] of Object.entries(data.parameters)) {
+                        const input = document.getElementById(key);
+                        if (input) {
+                            input.value = value;
+                            input.style.borderColor = '';
+                        }
+                    }
+                    showMessage('Значения заполнены случайными данными', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Ошибка при генерации случайных значений', 'error');
+            });
+    });
+
+    // Диапазоны значений
+    const allowedRanges = {
+        pR: {
+            K1: [0, 24], K2: [0, 72], K3: [0, 100], K4: [0, 6], K5: [0, 1000],
+            K6: [0, 500], K7: [0, 500], K8: [0, 200], K9: [0, 50], K10: [0, 1000],
+            K11: [0, 200], K12: [0, 100], K13: [0, 10000], K14: [0, 500], K15: [0, 100]
+        },
+        external: {
+            R1: [0, 1], R2: [0, 1], R3: [0, 1], R4: [0, 1]
+        }
+    };
+
+    // Проверка, что введённое значение в пределах допустимого диапазона (обновленная)
+    function validateGlobalRanges() {
+        let isValid = true;
+        let errors = [];
+
+        // Проверяем параметры K1-K15
+        for (let i = 1; i <= 15; i++) {
+            const input = document.getElementById(`K${i}`);
+            const input_max = document.getElementById(`K${i}_max`);
+            if (!input) continue;
+
+            const value = parseFloat(input.value);
+            const value_max = parseFloat(input_max.value);
+            const range = allowedRanges.pR[`K${i}`];
+            const [minVal, maxVal] = range;
+
+            input.style.borderColor = '';
+            input_max.style.borderColor = '';
+
+            if (isNaN(value)) continue;
+            if ((value < minVal || value > maxVal) || (value_max < minVal || value_max > maxVal)) {
+                input.style.borderColor = '#e74c3c';
+                input_max.style.borderColor = '#e74c3c';
+                errors.push(`K${i} (допустимо от ${minVal} до ${maxVal})`);
+                isValid = false;
+            }
+        }
+
+        // Проверяем внешние воздействия
+        for (let i = 1; i <= 4; i++) {
+            const input = document.getElementById(`R${i}`);
+            if (!input) continue;
+
+            const value = parseFloat(input.value);
+            const range = allowedRanges.external[`R${i}`];
+            const [minVal, maxVal] = range;
+
+            input.style.borderColor = '';
+
+            if (isNaN(value)) continue;
+            if (value < minVal || value > maxVal) {
+                input.style.borderColor = '#e74c3c';
+                errors.push(`R${i} (допустимо от ${minVal} до ${maxVal})`);
+                isValid = false;
+            }
+        }
+
+        if (!isValid) {
+            showMessage(
+                `Ошибка: значения параметра выходят за допустимые пределы: ${errors.join(', ')}`,
+                'error',
+                7000
+            );
+        }
+
+        return isValid;
+    }
+
+    // Построение диаграмм с проверками данных
+    document.getElementById('plotBtn').addEventListener('click', function () {
+        if (!validateParameterValues()) return;
+        if (!validateGlobalRanges()) return;
+
+        const formData = getFormData();
+
+        // Добавим логирование для отладки
+        console.log('Отправка данных:', formData);
+
+        fetch('/plot3', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+            .then(response => {
+                console.log('Получен ответ:', response);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Данные ответа:', data);
+                if (data.status === 'success') {
+                    document.getElementById('timeSeriesImg').src = 'data:image/png;base64,' + data.time_series;
+                    document.getElementById('radarChartsImg').src = 'data:image/png;base64,' + data.radar_charts;
+                    // Добавляем отображение графика возмущений
+                    if (data.disturbances) {
+                        // Создаем элемент для графика возмущений если его нет
+                        let disturbancesDiv = document.querySelector('.diagram:nth-child(3)');
+                        if (!disturbancesDiv) {
+                            disturbancesDiv = document.createElement('div');
+                            disturbancesDiv.className = 'diagram';
+                            disturbancesDiv.innerHTML = '<h3>Внешние воздействия</h3><img id="disturbancesImg" src="" alt="Внешние воздействия">';
+                            document.getElementById('diagramsContainer').appendChild(disturbancesDiv);
+                        }
+                        document.getElementById('disturbancesImg').src = 'data:image/png;base64,' + data.disturbances;
+                    }
+                    document.getElementById('diagramsContainer').style.display = 'block';
+                    showMessage('Диаграммы успешно построены', 'success');
+                } else {
+                    showMessage(data.message || 'Неизвестная ошибка', 'error');
+                }
+            })
+            .catch((error) => {
+                console.error('Ошибка при построении диаграмм:', error);
+                showMessage('Ошибка при построении диаграмм: ' + error.message, 'error');
+            });
+    });
+</script>
+</body>
+</html>

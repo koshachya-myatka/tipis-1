@@ -177,3 +177,59 @@ a:hover {
         width: 90%;
     }
 }
+.home-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #95a5a6;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background 0.3s ease;
+}
+.home-button:hover {
+    background: #7f8c8d;
+}
+.main-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    text-align: center;
+}
+
+.buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.lab-button {
+    display: block;
+    padding: 25px 20px;
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 18px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.lab-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: #2980b9;
+}
+
+.lab-button.disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+
+.lab-button.disabled:hover {
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: #95a5a6;
+}
