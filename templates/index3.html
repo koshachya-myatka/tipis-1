@@ -68,7 +68,6 @@
     </div>
 
     <!-- Таблица внешних воздействий -->
-    <!-- Таблица внешних воздействий -->
     <div class="table-wrapper">
         <h3 class="table-title">Коэффициенты возмущений</h3>
         <div class="scrollable-table">
@@ -357,14 +356,12 @@
     });
 
     // Диапазоны значений
-    // Обновляем allowedRanges для новых параметров
     const allowedRanges = {
         pR: {
             K1: [0, 24], K2: [0, 72], K3: [0, 100], K4: [0, 6], K5: [0, 1000],
             K6: [0, 500], K7: [0, 500], K8: [0, 200], K9: [0, 50], K10: [0, 1000],
             K11: [0, 200], K12: [0, 100], K13: [0, 10000], K14: [0, 500], K15: [0, 100]
         },
-        // Удаляем external и добавляем диапазоны для коэффициентов
         coefficients: {
             R1_a3: [-10, 10], R1_a2: [-10, 10], R1_a1: [-10, 10], R1_a0: [-10, 10],
             R2_a3: [-10, 10], R2_a2: [-10, 10], R2_a1: [-10, 10], R2_a0: [-10, 10],
@@ -373,12 +370,11 @@
         }
     };
 
-    // Обновляем функцию validateGlobalRanges
     function validateGlobalRanges() {
         let isValid = true;
         let errors = [];
 
-        // Проверяем параметры K1-K15 (оставляем без изменений)
+        // Проверяем параметры K1-K15
         for (let i = 1; i <= 15; i++) {
             const input = document.getElementById(`K${i}`);
             const input_max = document.getElementById(`K${i}_max`);
