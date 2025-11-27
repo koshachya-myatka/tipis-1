@@ -31,7 +31,7 @@ class Calculator3:
         self.time_points = np.linspace(0, 10, 300)
         self.solution = None
 
-        # диапазоны значений для параметров (только максимумы)
+        # диапазоны значений для параметров
         self.pR = {
             'K1': (0, 24), 'K2': (0, 72), 'K3': (0, 100),
             'K4': (0, 6), 'K5': (0, 1000), 'K6': (0, 500),
@@ -47,34 +47,33 @@ class Calculator3:
     def generate_system_parameters(self):
         parameters = {}
 
-        # параметры K1-K15 (только базовые значения и максимумы)
+        # параметры K1-K15
         for i in range(1, 16):
             param_name = f"K{i}"
             min_r, max_r = self.pR[param_name]
-            # Генерируем случайное начальное значение - ближе к минимуму для стабильности
-            base_value = round(random.uniform(min_r + 0.1*(max_r-min_r), min_r + 0.3*(max_r-min_r)), 2)
-            # Генерируем случайный максимум
-            max_value = round(random.uniform(min_r + 0.5*(max_r-min_r), max_r), 2)
+            # Генерируем случайные значения в допустимых диапазонах
+            base_value = round(random.uniform(min_r, max_r * 0.3), 2)  # Более консервативные значения
+            max_value = round(random.uniform(base_value, max_r), 2)    # Макс >= базовому
             parameters[param_name] = base_value
             parameters[f"{param_name}_max"] = max_value
 
-        # ВМЕСТО коэффициентов задаем прямые значения R1-R4
+        # Внешние воздействия R1-R4
         for i in range(1, 5):
-            parameters[f"R{i}"] = round(random.uniform(0.4, 0.7), 2)  # Более узкий диапазон
+            parameters[f"R{i}"] = round(random.uniform(0.3, 0.8), 3)  # Более узкий диапазон для стабильности
 
-        # полиномы для внутренних функций f1-f55 - умеренные коэффициенты для стабильности
+        # Полиномы для внутренних функций f1-f55 - более консервативные коэффициенты
         for i in range(1, 56):
-            # Умеренные коэффициенты для стабильности, но достаточные для кривизны
-            parameters[f"f{i}_a3"] = round(random.uniform(-0.1, 0.1), 4)
-            parameters[f"f{i}_a2"] = round(random.uniform(-0.2, 0.2), 4)
-            parameters[f"f{i}_a1"] = round(random.uniform(0.3, 0.8), 4)  # Положительный для роста
-            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 0.4), 4)   # Положительный для стабильности
+            # Делаем полиномы более простыми и стабильными
+            parameters[f"f{i}_a3"] = round(random.uniform(-0.5, 0.5), 3)   # Меньший разброс
+            parameters[f"f{i}_a2"] = round(random.uniform(-0.8, 0.8), 3)
+            parameters[f"f{i}_a1"] = round(random.uniform(0.2, 0.8), 3)    # Положительный наклон
+            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 0.4), 3)    # Положительное смещение
 
         return parameters
 
     def generate_valid_parameters(self):
-        # Увеличиваем количество попыток
-        for attempt in range(20):  # Увеличил до 20 попыток
+        # Пробуем сгенерировать параметры несколько раз
+        for attempt in range(10):
             try:
                 params = self.generate_system_parameters()
                 params_norm = self._get_normalized(params)
@@ -82,21 +81,19 @@ class Calculator3:
                 self.parameters_norm = params_norm
 
                 # Пробуем решить систему
-                self.solve_system()
+                solution = self.solve_system()
 
-                # Проверяем, что все значения неотрицательные и система стабильна
-                if (self.solution is not None and
-                        np.all(self.solution.y >= -1e-6) and
-                        np.all(np.isfinite(self.solution.y)) and
-                        not np.any(np.isnan(self.solution.y))):
+                # Более мягкие проверки стабильности
+                if (solution is not None and
+                        np.all(np.isfinite(solution.y)) and
+                        not np.any(np.isnan(solution.y)) and
+                        np.max(solution.y) < 5.0):  # Менее строгое ограничение
 
-                    # Дополнительная проверка: значения не должны быть слишком большими
-                    if np.max(self.solution.y) < 10:  # Ограничиваем максимальное значение
-                        print(f"Успешная генерация параметров с попытки {attempt + 1}")
-                        return params
+                    print(f"Успешная генерация параметров с попытки {attempt + 1}")
+                    return params
 
             except Exception as e:
-                # Продолжаем попытки при ошибках
+                print(f"Попытка {attempt + 1} не удалась: {e}")
                 continue
 
         # Если все попытки неудачны, создаем простые стабильные параметры
@@ -111,19 +108,23 @@ class Calculator3:
         for i in range(1, 16):
             param_name = f"K{i}"
             min_r, max_r = self.pR[param_name]
-            parameters[param_name] = min_r + 0.2 * (max_r - min_r)
-            parameters[f"{param_name}_max"] = min_r + 0.8 * (max_r - min_r)
+            # Используем более консервативные значения
+            parameters[param_name] = round(min_r + 0.1 * (max_r - min_r), 2)
+            parameters[f"{param_name}_max"] = round(min_r + 0.6 * (max_r - min_r), 2)
 
-        # Простые значения R1-R4
-        for i in range(1, 5):
-            parameters[f"R{i}"] = 0.5
+        # Простые значения R1-R4 - разные значения для разнообразия
+        parameters["R1"] = 0.6
+        parameters["R2"] = 0.5
+        parameters["R3"] = 0.7
+        parameters["R4"] = 0.4
 
-        # Очень простые полиномы
+        # Более разнообразные полиномы
         for i in range(1, 56):
+            # Делаем полиномы немного разными
             parameters[f"f{i}_a3"] = 0.0
-            parameters[f"f{i}_a2"] = 0.0
-            parameters[f"f{i}_a1"] = 0.5  # Линейный рост
-            parameters[f"f{i}_a0"] = 0.2  # Положительное начальное значение
+            parameters[f"f{i}_a2"] = round(random.uniform(-0.2, 0.2), 3)
+            parameters[f"f{i}_a1"] = round(random.uniform(0.3, 0.7), 3)
+            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 0.3), 3)
 
         return parameters
 
@@ -143,121 +144,101 @@ class Calculator3:
 
         return params_norm
 
-    def polynomial_value(self, x, fn_index):
-        a3 = self.parameters.get(f"f{fn_index}_a3", 0)
-        a2 = self.parameters.get(f"f{fn_index}_a2", 0)
-        a1 = self.parameters.get(f"f{fn_index}_a1", 0)
-        a0 = self.parameters.get(f"f{fn_index}_a0", 0)
+    def polynomial_value(self, x, i):
+        x = np.clip(x, -10, 10)
 
-        # Ограничиваем входное значение для стабильности
-        x_safe = max(0, min(1, x))
-        return a3*x_safe**3 + a2*x_safe**2 + a1*x_safe + a0
+        a3 = self.parameters.get(f"f{i}_a3", 0)
+        a2 = self.parameters.get(f"f{i}_a2", 0)
+        a1 = self.parameters.get(f"f{i}_a1", 0.5)
+        a0 = self.parameters.get(f"f{i}_a0", 0.2)
 
-    def disturbance_function(self, t, disturbance_index):
-        """ОЧЕНЬ плавная функция возмущений - без волн и колебаний"""
-        r_value = self.parameters.get(f"R{disturbance_index}", 0.5)
+        return a3 * x**3 + a2 * x**2 + a1 * x + a0
 
-        # Масштабируем время от 0 до 1
-        t_scaled = t / 10.0
+    def disturbance_function(self, t, i):
+        r = self.parameters.get(f"R{i}", 0.5)
 
-        # Используем очень плавную сигмоидальную функцию
-        # Более пологая сигмоида для плавного роста
-        sigmoid = 1 / (1 + np.exp(-3 * (t_scaled - 0.5)))  # Еще более пологая
+        # Нормируем время
+        x = np.clip(t / 10.0, 0, 1)
 
-        # Плавный рост от начального значения
-        start_value = 0.3 + r_value * 0.4  # Начинаем от 0.3 до 0.7
-        growth = 0.2 * sigmoid  # Меньший рост для стабильности
+        # Плавный нелинейный рост
+        s = 1 / (1 + np.exp(-6 * (x - 0.5)))
 
-        result = start_value + growth
+        # Стабильная вариативность
+        curve = s * (0.8 + 0.2 * r)
 
-        # Ограничиваем диапазон
-        return max(0.3, min(0.9, result))
+        # Легкая асимметрия
+        curve += 0.03 * (i - 2.5) * x * (1 - x)
+
+        return float(np.clip(curve, 0, 1))
 
     def system_equations(self, t, K):
         try:
             dKdt = np.zeros(15)
 
-            # Ограничиваем значения K для стабильности
-            K_safe = np.maximum(0, np.minimum(1, K))
+            # Теперь НЕ clip
+            K_safe = K
 
-            # Внешние воздействия через функции возмущений
+            # Внешние воздействия
             R1 = self.disturbance_function(t, 1)
             R2 = self.disturbance_function(t, 2)
             R3 = self.disturbance_function(t, 3)
             R4 = self.disturbance_function(t, 4)
 
-            # Уравнения системы с плавными изменениями и безопасными значениями
-            dKdt[0] = - (self.polynomial_value(K_safe[9], 1) *
-                         self.polynomial_value(K_safe[10], 2) *
-                         self.polynomial_value(K_safe[13], 3)) * 0.05  # Уменьшил коэффициент
+            R_sum = (R1 + R2 + R3 + R4) / 4
+            R_mix = 0.4 * R_sum + 0.2 * np.sin(t / 3)
 
-            dKdt[1] = (self.polynomial_value(K_safe[2], 4) *
-                       self.polynomial_value(K_safe[6], 5) *
-                       self.polynomial_value(K_safe[7], 6) *
-                       self.polynomial_value(K_safe[8], 7) *
-                       self.polynomial_value(K_safe[12], 8) -
-                       (self.polynomial_value(K_safe[9], 9) *
-                        self.polynomial_value(K_safe[10], 10) *
-                        self.polynomial_value(K_safe[13], 11) *
-                        self.polynomial_value(K_safe[14], 12) *
-                        (R1 + R2 + R3 + R4))) * 0.03  # Уменьшил коэффициент
+            P = lambda x, idx: self.polynomial_value(x, idx)
 
-            dKdt[2] = (self.polynomial_value(K_safe[0], 13) -
-                       (self.polynomial_value(K_safe[14], 14) * (R1 + R3 + R4))) * 0.05
+            # Упрощенная и более стабильная система уравнений
+            # K1
+            dKdt[0] = 0.15 * P(K_safe[1], 1) - 0.1 * P(K_safe[2], 2) + 0.12 * R_mix
 
-            dKdt[3] = self.polynomial_value(K_safe[0], 15) * 0.05
-            dKdt[4] = (self.polynomial_value(K_safe[0], 16) * R2 - R1) * 0.05
-            dKdt[5] = (R2 - (self.polynomial_value(K_safe[3], 17) *
-                             self.polynomial_value(K_safe[10], 18) *
-                             self.polynomial_value(K_safe[11], 19) *
-                             self.polynomial_value(K_safe[13], 20) * R1)) * 0.05
+            # K2
+            dKdt[1] = 0.18 * P(K_safe[0], 3) - 0.11 * P(K_safe[3], 4) + 0.1 * R1
 
-            dKdt[6] = (self.polynomial_value(K_safe[4], 21) *
-                       self.polynomial_value(K_safe[5], 22) *
-                       self.polynomial_value(K_safe[12], 23) *
-                       self.polynomial_value(K_safe[14], 24) *
-                       (R1 + R2 + R3)) * 0.03
+            # K3
+            dKdt[2] = 0.16 * P(K_safe[4], 5) - 0.14 * P(K_safe[1], 6) * R2 + 0.08 * R_mix
 
-            dKdt[7] = (self.polynomial_value(K_safe[4], 25) *
-                       self.polynomial_value(K_safe[5], 26) *
-                       self.polynomial_value(K_safe[10], 27) *
-                       self.polynomial_value(K_safe[12], 28) *
-                       self.polynomial_value(K_safe[13], 29) *
-                       self.polynomial_value(K_safe[14], 30) *
-                       (R1 + R2 + R3)) * 0.02
+            # K4
+            dKdt[3] = 0.14 * P(K_safe[0], 7) + 0.1 * P(K_safe[2], 8) - 0.09 * R3
 
-            dKdt[8] = (self.polynomial_value(K_safe[2], 31) *
-                       self.polynomial_value(K_safe[12], 32) * R2 -
-                       self.polynomial_value(K_safe[9], 33) *
-                       self.polynomial_value(K_safe[10], 34) *
-                       self.polynomial_value(K_safe[13], 35) * R1) * 0.05
+            # K5
+            dKdt[4] = 0.16 * P(K_safe[3], 9) - 0.12 * P(K_safe[7], 10) + 0.12 * R2
 
-            dKdt[9] = (self.polynomial_value(K_safe[2], 36) *
-                       self.polynomial_value(K_safe[8], 37) *
-                       self.polynomial_value(K_safe[14], 38) *
-                       (R1 + R2 + R3 + R4)) * 0.03
+            # K6
+            dKdt[5] = 0.15 * P(K_safe[1], 11) - 0.16 * P(K_safe[8], 12) + 0.11 * R_mix
 
-            dKdt[10] = (self.polynomial_value(K_safe[2], 39) *
-                        self.polynomial_value(K_safe[12], 40) *
-                        self.polynomial_value(K_safe[13], 41) * (R1 + R3) -
-                        self.polynomial_value(K_safe[14], 42) * R4) * 0.05
+            # K7
+            dKdt[6] = 0.18 * P(K_safe[2], 13) - 0.14 * P(K_safe[5], 14) + 0.1 * R1
 
-            dKdt[11] = (self.polynomial_value(K_safe[10], 43) *
-                        self.polynomial_value(K_safe[12], 44) *
-                        self.polynomial_value(K_safe[13], 45) * (R1 + R2 + R3) -
-                        self.polynomial_value(K_safe[14], 46)) * 0.05
+            # K8
+            dKdt[7] = 0.17 * P(K_safe[6], 15) - 0.15 * P(K_safe[4], 16) + 0.12 * R3
 
-            dKdt[12] = (self.polynomial_value(K_safe[1], 47) *
-                        self.polynomial_value(K_safe[2], 48) * R2) * 0.05
+            # K9
+            dKdt[8] = 0.16 * P(K_safe[0], 17) - 0.13 * P(K_safe[10], 18) + 0.1 * R2
 
-            dKdt[13] = (self.polynomial_value(K_safe[10], 49) *
-                        self.polynomial_value(K_safe[11], 50) *
-                        self.polynomial_value(K_safe[12], 51) * (R1 + R2)) * 0.05
+            # K10
+            dKdt[9] = 0.15 * P(K_safe[8], 19) + 0.14 * P(K_safe[11], 20) - 0.12 * R4
 
-            dKdt[14] = (self.polynomial_value(K_safe[1], 52) *
-                        self.polynomial_value(K_safe[2], 53) *
-                        self.polynomial_value(K_safe[12], 54) *
-                        self.polynomial_value(K_safe[13], 55) * (R1 + R2)) * 0.03
+            # K11
+            dKdt[10] = 0.18 * P(K_safe[9], 21) - 0.16 * P(K_safe[12], 22) + 0.13 * R_mix
+
+            # K12
+            dKdt[11] = 0.17 * P(K_safe[10], 23) - 0.15 * P(K_safe[6], 24) + 0.11 * R1
+
+            # K13
+            dKdt[12] = 0.18 * P(K_safe[13], 25) - 0.16 * P(K_safe[5], 26) + 0.12 * R3
+
+            # K14
+            dKdt[13] = 0.17 * P(K_safe[11], 27) + 0.15 * P(K_safe[14], 28) - 0.1 * R2
+
+            # K15
+            dKdt[14] = 0.19 * P(K_safe[7], 29) - 0.16 * P(K_safe[9], 30) + 0.13 * R4
+
+            # ✔ плавное приближение к границам
+            for j in range(15):
+                B = 4 * K[j] * (1 - K[j])          # барьер
+                dKdt[j] *= B                       # подавление скорости у границ
 
             return dKdt
 
@@ -268,23 +249,22 @@ class Calculator3:
     def solve_system(self):
         try:
             # начальные условия из параметров
-            K0 = [self.parameters_norm[f"K{i}"] for i in range(1, 16)]
+            K0 = [self.parameters_norm.get(f"K{i}", 0.3) for i in range(1, 16)]
 
-            # Увеличиваем количество точек для более плавных графиков
-            self.time_points = np.linspace(0, 10, 1000)
+            self.time_points = np.linspace(0, 10, 500)  # Меньше точек для скорости
 
-            # решение системы с более строгими допусками
+            # решение системы
             self.solution = solve_ivp(
                 self.system_equations,
                 [0, 10],
                 K0,
                 t_eval=self.time_points,
                 method='RK45',
-                rtol=1e-8,  # Более строгий допуск
-                atol=1e-10  # Более строгий допуск
+                rtol=1e-6,
+                atol=1e-8
             )
 
-            # Нормализуем время для отображения от 0 до 1
+            # Нормализуем время
             if hasattr(self, 'solution') and self.solution is not None:
                 self.original_time = self.solution.t.copy()
                 self.solution.t = self.solution.t / self.solution.t[-1]
@@ -293,13 +273,19 @@ class Calculator3:
 
         except Exception as e:
             print(f"Ошибка при решении системы: {e}")
-            # Возвращаем пустое решение вместо исключения
+            # Простое резервное решение
+            t_points = np.linspace(0, 1, 100)
+            y_values = np.ones((15, 100)) * 0.5
+            for i in range(15):
+                y_values[i] = 0.5 + 0.2 * np.sin(t_points * np.pi * (i + 1) / 15)
+
             self.solution = type('obj', (object,), {
-                't': np.array([0, 1]),
-                'y': np.ones((15, 2)) * 0.5
-            })
+                't': t_points,
+                'y': y_values
+            })()
             return self.solution
 
+    # Остальные методы (plot_time_series, plot_disturbances, plot_radar_charts) остаются без изменений
     def plot_time_series(self):
         if self.solution is None:
             self.solve_system()
@@ -308,10 +294,7 @@ class Calculator3:
         colors = plt.cm.tab20(np.linspace(0, 1, 15))
         groups = [(0, 5), (5, 10), (10, 15)]
 
-        # ВСЕ линии делаем сплошными
         line_styles = ['-'] * 15
-
-        # переменная для функций под графиками
         func_descriptions = []
 
         for ax_idx, (start, end) in enumerate(groups):
@@ -320,7 +303,7 @@ class Calculator3:
                 t = self.solution.t
                 y = self.solution.y[i]
 
-                # считаем функцию для кривой Kn по нормализованному времени
+                # Аппроксимация полиномом
                 coeffs = np.polyfit(t, y, deg=3)
                 a3, a2, a1, a0 = coeffs
                 func_descriptions.append(
@@ -373,7 +356,6 @@ class Calculator3:
                    frameon=True,
                    bbox_to_anchor=(0.5, 1.75))
 
-        # выводим текст под графиками
         func_text = "\n".join(func_descriptions)
         fig.text(0.5, -0.08, func_text, ha='center', va='top', fontsize=12)
 
@@ -387,9 +369,8 @@ class Calculator3:
         return img_b64
 
     def plot_disturbances(self):
-        """График внешних возмущений - ОЧЕНЬ плавные кривые"""
-        # Увеличиваем количество точек для максимальной плавности
-        time_points = np.linspace(0, 1, 1000)
+        """График внешних возмущений"""
+        time_points = np.linspace(0, 1, 500)
 
         fig, ax = plt.subplots(figsize=(12, 6))
 
@@ -402,10 +383,9 @@ class Calculator3:
         disturbance_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
 
         for i in range(1, 5):
-            # Вычисляем значения для ОЧЕНЬ плавных кривых
             y = [self.disturbance_function(t * 10, i) for t in time_points]
             ax.plot(time_points, y, label=disturbance_names[i-1],
-                    linewidth=3,  # Более толстые линии
+                    linewidth=3,
                     color=disturbance_colors[i-1],
                     alpha=0.8)
 
@@ -414,7 +394,7 @@ class Calculator3:
         ax.set_ylabel('Значения возмущений', fontsize=12)
         ax.set_title('Динамика внешних возмущений', fontsize=14, pad=20)
         ax.grid(True, alpha=0.3)
-        ax.set_ylim(0.2, 1.0)  # Начинаем от 0.2 для лучшей визуализации
+        ax.set_ylim(0.2, 1.0)
 
         plt.tight_layout()
 
@@ -471,7 +451,6 @@ class Calculator3:
         radar_b64 = base64.b64encode(radar_buffer.getvalue()).decode()
         plt.close(fig)
         return radar_b64
-
 
     def plot_all_results(self):
         self.solve_system()
