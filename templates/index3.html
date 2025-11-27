@@ -68,37 +68,58 @@
     </div>
 
     <!-- Таблица внешних воздействий -->
+    <!-- Таблица внешних воздействий -->
     <div class="table-wrapper">
-        <h3 class="table-title">Значения внешних возмущений</h3>
+        <h3 class="table-title">Коэффициенты возмущений</h3>
         <div class="scrollable-table">
             <table>
                 <thead>
                 <tr>
                     <th>Возмущение</th>
                     <th>Название</th>
-                    <th>Значение (0-1)</th>
+                    <th colspan="4">Коэффициенты</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr>
                     <td>R<sub>1</sub></td>
                     <td>Уровень финансирования системы МЧС города</td>
-                    <td><input type="number" min="0" max="1" step="0.01" id="R1" value="{{ parameters.get('R1', '') }}"></td>
+                    <td class="formula-row">
+                        <input type="number" step="0.01" class="formula-input" id="R1_a3" value="{{ parameters.get('R1_a3', '') }}"> * t³ +
+                        <input type="number" step="0.01" class="formula-input" id="R1_a2" value="{{ parameters.get('R1_a2', '') }}"> * t² +
+                        <input type="number" step="0.01" class="formula-input" id="R1_a1" value="{{ parameters.get('R1_a1', '') }}"> * t +
+                        <input type="number" step="0.01" class="formula-input" id="R1_a0" value="{{ parameters.get('R1_a0', '') }}">
+                    </td>
                 </tr>
                 <tr>
                     <td>R<sub>2</sub></td>
                     <td>Степень экономического развития города</td>
-                    <td><input type="number" min="0" max="1" step="0.01" id="R2" value="{{ parameters.get('R2', '') }}"></td>
+                    <td class="formula-row">
+                        <input type="number" step="0.01" class="formula-input" id="R2_a3" value="{{ parameters.get('R2_a3', '') }}"> * t³ +
+                        <input type="number" step="0.01" class="formula-input" id="R2_a2" value="{{ parameters.get('R2_a2', '') }}"> * t² +
+                        <input type="number" step="0.01" class="formula-input" id="R2_a1" value="{{ parameters.get('R2_a1', '') }}"> * t +
+                        <input type="number" step="0.01" class="formula-input" id="R2_a0" value="{{ parameters.get('R2_a0', '') }}">
+                    </td>
                 </tr>
                 <tr>
                     <td>R<sub>3</sub></td>
                     <td>Наличие прибыли у предприятия</td>
-                    <td><input type="number" min="0" max="1" step="0.01" id="R3" value="{{ parameters.get('R3', '') }}"></td>
+                    <td class="formula-row">
+                        <input type="number" step="0.01" class="formula-input" id="R3_a3" value="{{ parameters.get('R3_a3', '') }}"> * t³ +
+                        <input type="number" step="0.01" class="formula-input" id="R3_a2" value="{{ parameters.get('R3_a2', '') }}"> * t² +
+                        <input type="number" step="0.01" class="formula-input" id="R3_a1" value="{{ parameters.get('R3_a1', '') }}"> * t +
+                        <input type="number" step="0.01" class="formula-input" id="R3_a0" value="{{ parameters.get('R3_a0', '') }}">
+                    </td>
                 </tr>
                 <tr>
                     <td>R<sub>4</sub></td>
                     <td>Доля современного оборудования на предприятии</td>
-                    <td><input type="number" min="0" max="1" step="0.01" id="R4" value="{{ parameters.get('R4', '') }}"></td>
+                    <td class="formula-row">
+                        <input type="number" step="0.01" class="formula-input" id="R4_a3" value="{{ parameters.get('R4_a3', '') }}"> * t³ +
+                        <input type="number" step="0.01" class="formula-input" id="R4_a2" value="{{ parameters.get('R4_a2', '') }}"> * t² +
+                        <input type="number" step="0.01" class="formula-input" id="R4_a1" value="{{ parameters.get('R4_a1', '') }}"> * t +
+                        <input type="number" step="0.01" class="formula-input" id="R4_a0" value="{{ parameters.get('R4_a0', '') }}">
+                    </td>
                 </tr>
                 </tbody>
             </table>
@@ -336,23 +357,28 @@
     });
 
     // Диапазоны значений
+    // Обновляем allowedRanges для новых параметров
     const allowedRanges = {
         pR: {
             K1: [0, 24], K2: [0, 72], K3: [0, 100], K4: [0, 6], K5: [0, 1000],
             K6: [0, 500], K7: [0, 500], K8: [0, 200], K9: [0, 50], K10: [0, 1000],
             K11: [0, 200], K12: [0, 100], K13: [0, 10000], K14: [0, 500], K15: [0, 100]
         },
-        external: {
-            R1: [0, 1], R2: [0, 1], R3: [0, 1], R4: [0, 1]
+        // Удаляем external и добавляем диапазоны для коэффициентов
+        coefficients: {
+            R1_a3: [-10, 10], R1_a2: [-10, 10], R1_a1: [-10, 10], R1_a0: [-10, 10],
+            R2_a3: [-10, 10], R2_a2: [-10, 10], R2_a1: [-10, 10], R2_a0: [-10, 10],
+            R3_a3: [-10, 10], R3_a2: [-10, 10], R3_a1: [-10, 10], R3_a0: [-10, 10],
+            R4_a3: [-10, 10], R4_a2: [-10, 10], R4_a1: [-10, 10], R4_a0: [-10, 10]
         }
     };
 
-    // Проверка, что введённое значение в пределах допустимого диапазона (обновленная)
+    // Обновляем функцию validateGlobalRanges
     function validateGlobalRanges() {
         let isValid = true;
         let errors = [];
 
-        // Проверяем параметры K1-K15
+        // Проверяем параметры K1-K15 (оставляем без изменений)
         for (let i = 1; i <= 15; i++) {
             const input = document.getElementById(`K${i}`);
             const input_max = document.getElementById(`K${i}_max`);
@@ -375,22 +401,24 @@
             }
         }
 
-        // Проверяем внешние воздействия
+        // Проверяем коэффициенты возмущений
         for (let i = 1; i <= 4; i++) {
-            const input = document.getElementById(`R${i}`);
-            if (!input) continue;
+            for (const coef of ['a3', 'a2', 'a1', 'a0']) {
+                const input = document.getElementById(`R${i}_${coef}`);
+                if (!input) continue;
 
-            const value = parseFloat(input.value);
-            const range = allowedRanges.external[`R${i}`];
-            const [minVal, maxVal] = range;
+                const value = parseFloat(input.value);
+                const range = allowedRanges.coefficients[`R${i}_${coef}`];
+                const [minVal, maxVal] = range;
 
-            input.style.borderColor = '';
+                input.style.borderColor = '';
 
-            if (isNaN(value)) continue;
-            if (value < minVal || value > maxVal) {
-                input.style.borderColor = '#e74c3c';
-                errors.push(`R${i} (допустимо от ${minVal} до ${maxVal})`);
-                isValid = false;
+                if (isNaN(value)) continue;
+                if (value < minVal || value > maxVal) {
+                    input.style.borderColor = '#e74c3c';
+                    errors.push(`R${i}_${coef} (допустимо от ${minVal} до ${maxVal})`);
+                    isValid = false;
+                }
             }
         }
 

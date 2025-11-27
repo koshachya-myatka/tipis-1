@@ -266,13 +266,14 @@ def update_calculator3_from_form(form_data):
             min_val, max_val = CALCULATOR3.pR[param_name]
             CALCULATOR3.parameters[max_name] = max_val
 
-    # Убедимся, что внешние воздействия R1-R4 присутствуют
+    # Убедимся, что коэффициенты возмущений R1-R4 присутствуют
     for i in range(1, 5):
-        r_name = f"R{i}"
-        if r_name not in CALCULATOR3.parameters:
-            CALCULATOR3.parameters[r_name] = 0.5  # значение по умолчанию
-
-    # УБИРАЕМ проверку коэффициентов возмущений q1_a3 и т.д.
+        for coef in ['a3', 'a2', 'a1', 'a0']:
+            param_name = f"R{i}_{coef}"
+            if param_name not in CALCULATOR3.parameters:
+                # Значения по умолчанию для коэффициентов
+                default_values = {'a3': 0.0, 'a2': 0.0, 'a1': 0.5, 'a0': 0.2}
+                CALCULATOR3.parameters[param_name] = default_values[coef]
 
     # Обновляем нормализованные параметры
     CALCULATOR3.parameters_norm = CALCULATOR3._get_normalized(CALCULATOR3.parameters)

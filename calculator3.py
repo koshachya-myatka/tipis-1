@@ -27,11 +27,11 @@ class Calculator3:
             "K15": "Развитость системы МЧС"
         }
 
-        # временные точки
-        self.time_points = np.linspace(0, 10, 300)
+        # временные точки (нормированные 0..1)
+        self.time_points = np.linspace(0, 1, 500)
         self.solution = None
 
-        # диапазоны значений для параметров
+        # диапазоны значений для параметров (оригинальные масштабы)
         self.pR = {
             'K1': (0, 24), 'K2': (0, 72), 'K3': (0, 100),
             'K4': (0, 6), 'K5': (0, 1000), 'K6': (0, 500),
@@ -40,7 +40,7 @@ class Calculator3:
             'K13': (0, 10000), 'K14': (0, 500), 'K15': (0, 100)
         }
 
-        # все параметры системы
+        # параметры системы
         self.parameters = self.generate_valid_parameters()
         self.parameters_norm = {}
 
@@ -51,28 +51,28 @@ class Calculator3:
         for i in range(1, 16):
             param_name = f"K{i}"
             min_r, max_r = self.pR[param_name]
-            # Генерируем случайные значения в допустимых диапазонах
-            base_value = round(random.uniform(min_r, max_r * 0.3), 2)  # Более консервативные значения
-            max_value = round(random.uniform(base_value, max_r), 2)    # Макс >= базовому
+            base_value = round(random.uniform(min_r, max_r * 0.3), 2)
+            max_value = round(random.uniform(base_value, max_r), 2)
             parameters[param_name] = base_value
             parameters[f"{param_name}_max"] = max_value
 
-        # Внешние воздействия R1-R4
+        # Коэффициенты для возмущений R1-R4 (полиномы)
         for i in range(1, 5):
-            parameters[f"R{i}"] = round(random.uniform(0.3, 0.8), 3)  # Более узкий диапазон для стабильности
+            parameters[f"R{i}_a3"] = round(random.uniform(-0.5, 0.5), 3)
+            parameters[f"R{i}_a2"] = round(random.uniform(-0.8, 0.8), 3)
+            parameters[f"R{i}_a1"] = round(random.uniform(0.2, 0.8), 3)
+            parameters[f"R{i}_a0"] = round(random.uniform(0.1, 0.4), 3)
 
-        # Полиномы для внутренних функций f1-f55 - более консервативные коэффициенты
+        # Полиномы для внутренних функций f1-f55
         for i in range(1, 56):
-            # Делаем полиномы более простыми и стабильными
-            parameters[f"f{i}_a3"] = round(random.uniform(-0.5, 0.5), 3)   # Меньший разброс
+            parameters[f"f{i}_a3"] = round(random.uniform(-0.5, 0.5), 3)
             parameters[f"f{i}_a2"] = round(random.uniform(-0.8, 0.8), 3)
-            parameters[f"f{i}_a1"] = round(random.uniform(0.2, 0.8), 3)    # Положительный наклон
-            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 0.4), 3)    # Положительное смещение
+            parameters[f"f{i}_a1"] = round(random.uniform(0.2, 0.8), 3)
+            parameters[f"f{i}_a0"] = round(random.uniform(0.1, 0.4), 3)
 
         return parameters
 
     def generate_valid_parameters(self):
-        # Пробуем сгенерировать параметры несколько раз
         for attempt in range(10):
             try:
                 params = self.generate_system_parameters()
@@ -80,47 +80,32 @@ class Calculator3:
                 self.parameters = params
                 self.parameters_norm = params_norm
 
-                # Пробуем решить систему
-                solution = self.solve_system()
-
-                # Более мягкие проверки стабильности
-                if (solution is not None and
-                        np.all(np.isfinite(solution.y)) and
-                        not np.any(np.isnan(solution.y)) and
-                        np.max(solution.y) < 5.0):  # Менее строгое ограничение
-
+                sol = self.solve_system()
+                if sol is not None and np.all(np.isfinite(sol.y)) and not np.any(np.isnan(sol.y)) and np.max(sol.y) < 5.0:
                     print(f"Успешная генерация параметров с попытки {attempt + 1}")
                     return params
-
             except Exception as e:
                 print(f"Попытка {attempt + 1} не удалась: {e}")
                 continue
 
-        # Если все попытки неудачны, создаем простые стабильные параметры
         print("Используем резервные параметры")
         return self.create_fallback_parameters()
 
     def create_fallback_parameters(self):
-        """Создает простые стабильные параметры"""
         parameters = {}
-
-        # Простые параметры K1-K15
         for i in range(1, 16):
             param_name = f"K{i}"
             min_r, max_r = self.pR[param_name]
-            # Используем более консервативные значения
             parameters[param_name] = round(min_r + 0.1 * (max_r - min_r), 2)
             parameters[f"{param_name}_max"] = round(min_r + 0.6 * (max_r - min_r), 2)
 
-        # Простые значения R1-R4 - разные значения для разнообразия
-        parameters["R1"] = 0.6
-        parameters["R2"] = 0.5
-        parameters["R3"] = 0.7
-        parameters["R4"] = 0.4
+        for i in range(1, 5):
+            parameters[f"R{i}_a3"] = 0.0
+            parameters[f"R{i}_a2"] = round(random.uniform(-0.2, 0.2), 3)
+            parameters[f"R{i}_a1"] = round(random.uniform(0.3, 0.7), 3)
+            parameters[f"R{i}_a0"] = round(random.uniform(0.1, 0.3), 3)
 
-        # Более разнообразные полиномы
         for i in range(1, 56):
-            # Делаем полиномы немного разными
             parameters[f"f{i}_a3"] = 0.0
             parameters[f"f{i}_a2"] = round(random.uniform(-0.2, 0.2), 3)
             parameters[f"f{i}_a1"] = round(random.uniform(0.3, 0.7), 3)
@@ -130,115 +115,130 @@ class Calculator3:
 
     def _get_normalized(self, params):
         params_norm = params.copy()
-
-        # Нормализация значений переменных K1-K15
         for i in range(1, 16):
             param_name = f"K{i}"
             min_val, max_val = self.pR[param_name]
-
             if param_name in params_norm:
                 params_norm[param_name] = (params_norm[param_name] - min_val) / (max_val - min_val)
-
             if f"{param_name}_max" in params_norm:
                 params_norm[f"{param_name}_max"] = (params_norm[f"{param_name}_max"] - min_val) / (max_val - min_val)
-
         return params_norm
 
     def polynomial_value(self, x, i):
-        x = np.clip(x, -10, 10)
-
-        a3 = self.parameters.get(f"f{i}_a3", 0)
-        a2 = self.parameters.get(f"f{i}_a2", 0)
+        # ограничим вход x в разумных рамках
+        x = float(np.clip(x, -10, 10))
+        a3 = self.parameters.get(f"f{i}_a3", 0.0)
+        a2 = self.parameters.get(f"f{i}_a2", 0.0)
         a1 = self.parameters.get(f"f{i}_a1", 0.5)
         a0 = self.parameters.get(f"f{i}_a0", 0.2)
-
         return a3 * x**3 + a2 * x**2 + a1 * x + a0
 
     def disturbance_function(self, t, i):
-        r = self.parameters.get(f"R{i}", 0.5)
+        # время в исходном масштабе (0..10) — используем t_norm*10
+        a3 = self.parameters.get(f"R{i}_a3", 0.0)
+        a2 = self.parameters.get(f"R{i}_a2", 0.0)
+        a1 = self.parameters.get(f"R{i}_a1", 0.5)
+        a0 = self.parameters.get(f"R{i}_a0", 0.2)
 
-        # Нормируем время
-        x = np.clip(t / 10.0, 0, 1)
+        x = np.clip((t) , 0, 10) / 10.0  # нормированное время 0..1
+        value = a3 * x**3 + a2 * x**2 + a1 * x + a0
 
-        # Плавный нелинейный рост
-        s = 1 / (1 + np.exp(-6 * (x - 0.5)))
+        # мягкая нормализация в [0,1]
+        normalized_value = 1.0 / (1.0 + np.exp(-6.0 * (value - 0.5)))
+        return float(normalized_value)
 
-        # Стабильная вариативность
-        curve = s * (0.8 + 0.2 * r)
-
-        # Легкая асимметрия
-        curve += 0.03 * (i - 2.5) * x * (1 - x)
-
-        return float(np.clip(curve, 0, 1))
+    def f(self, idx_f, K_input):
+        """
+        Безопасная реализация f_i(K_j):
+        - Берём полином от K_input (K_input обычно нормирован 0..1)
+        - Прогоняем через сигмоиду, чтобы получить значение ∈ (0,1)
+        """
+        # Если K_input — массив, работать поэлементно (но тут обычно скаляр)
+        val = self.polynomial_value(K_input, idx_f)
+        # смещаем и сжимаем полином в интервал (0,1)
+        s = 1.0 / (1.0 + np.exp(-6.0 * (val - 0.5)))
+        return float(np.clip(s, 0.0001, 0.9999))  # небольшие отступы от границ
 
     def system_equations(self, t, K):
+        """
+        Реализация производных по структуре ваших формул (приближённо):
+        dK1/dt = - (f1(K10) * f2(K11) * f3(K14))
+        dK2/dt = f4(K3)*f5(K7)*f6(K8)*f7(K9)*f8(K13) - (f9(K10)*f10(K11)*f11(K14)*f12(K15)*R1 + R2 + R3 + R4)
+        ...
+        Комбинации соответствуют вашей записи; добавлены малые масштабирующие коэффициенты gamma для устойчивости.
+        """
         try:
             dKdt = np.zeros(15)
+            # входные K обычно нормированы 0..1; если они не нормированы, используйте parameters_norm при инициализации
+            K_safe = np.array(K, dtype=float)
+            # внешние возмущения
+            R1 = self.disturbance_function(t*10, 1)  # t*10: внутри функции время в шкале 0..10
+            R2 = self.disturbance_function(t*10, 2)
+            R3 = self.disturbance_function(t*10, 3)
+            R4 = self.disturbance_function(t*10, 4)
 
-            # Теперь НЕ clip
-            K_safe = K
+            # малые масштабные коэффициенты (для предотвращения больших скачков)
+            g = 0.25  # глобальный коэффициент скорости (регулирует "плавность")
+            gneg = 0.18
 
-            # Внешние воздействия
-            R1 = self.disturbance_function(t, 1)
-            R2 = self.disturbance_function(t, 2)
-            R3 = self.disturbance_function(t, 3)
-            R4 = self.disturbance_function(t, 4)
+            # Для компактности - функция f(index, K_j_index) возвращает f_index(K_j)
+            # K индексация: K_safe[0] -> K1 ... K_safe[14] -> K15
+            # Реализуем все уравнения по тексту:
+            # dK1/dt = - (f1(K10) f2(K11) f3(K14))
+            dKdt[0] = - gneg * ( self.f(1, K_safe[9]) * self.f(2, K_safe[10]) * self.f(3, K_safe[13]) )
 
-            R_sum = (R1 + R2 + R3 + R4) / 4
-            R_mix = 0.4 * R_sum + 0.2 * np.sin(t / 3)
+            # dK2/dt = f4(K3)f5(K7)f6(K8)f7(K9)f8(K13) - (f9(K10)f10(K11)f11(K14)f12(K15)*R1 + R2 + R3 + R4)
+            prod_pos = ( self.f(4, K_safe[2]) * self.f(5, K_safe[6]) * self.f(6, K_safe[7]) *
+                         self.f(7, K_safe[8]) * self.f(8, K_safe[12]) )
+            prod_neg = ( self.f(9, K_safe[9]) * self.f(10, K_safe[10]) * self.f(11, K_safe[13]) * self.f(12, K_safe[14]) * R1
+                         + R2 + R3 + R4 )
+            dKdt[1] = g * (prod_pos - 0.9 * prod_neg)
 
-            P = lambda x, idx: self.polynomial_value(x, idx)
+            # dK3/dt = f13(K1) - (f14(K15)*R1 + R3 + R4)
+            dKdt[2] = g * ( self.f(13, K_safe[0]) - ( self.f(14, K_safe[14]) * R1 + R3 + R4 ) )
 
-            # Упрощенная и более стабильная система уравнений
-            # K1
-            dKdt[0] = 0.15 * P(K_safe[1], 1) - 0.1 * P(K_safe[2], 2) + 0.12 * R_mix
+            # dK4/dt = f15(K1)
+            dKdt[3] = g * self.f(15, K_safe[0])
 
-            # K2
-            dKdt[1] = 0.18 * P(K_safe[0], 3) - 0.11 * P(K_safe[3], 4) + 0.1 * R1
+            # dK5/dt = f16(K1)*R2 - (R1)
+            dKdt[4] = g * ( self.f(16, K_safe[0]) * R2 - 0.9 * R1 )
 
-            # K3
-            dKdt[2] = 0.16 * P(K_safe[4], 5) - 0.14 * P(K_safe[1], 6) * R2 + 0.08 * R_mix
+            # dK6/dt = R2 - (f17(K4)f18(K11)f19(K12)f20(K14)*R1)
+            dKdt[5] = g * ( R2 - ( self.f(17, K_safe[3]) * self.f(18, K_safe[10]) * self.f(19, K_safe[11]) * self.f(20, K_safe[13]) * R1 ) )
 
-            # K4
-            dKdt[3] = 0.14 * P(K_safe[0], 7) + 0.1 * P(K_safe[2], 8) - 0.09 * R3
+            # dK7/dt = f21(K5)f22(K6)f23(K13)f24(K15)*R1 + R2 + R3
+            dKdt[6] = g * ( self.f(21, K_safe[4]) * self.f(22, K_safe[5]) * self.f(23, K_safe[12]) * self.f(24, K_safe[14]) * R1 + R2 + R3 )
 
-            # K5
-            dKdt[4] = 0.16 * P(K_safe[3], 9) - 0.12 * P(K_safe[7], 10) + 0.12 * R2
+            # dK8/dt = f25(K5)f26(K6)f27(K11)f28(K13)f29(K14)f30(K15)*R1 + R2 + R3
+            dKdt[7] = g * ( self.f(25, K_safe[4]) * self.f(26, K_safe[5]) * self.f(27, K_safe[10]) *
+                            self.f(28, K_safe[12]) * self.f(29, K_safe[13]) * self.f(30, K_safe[14]) * R1 + R2 + R3 )
 
-            # K6
-            dKdt[5] = 0.15 * P(K_safe[1], 11) - 0.16 * P(K_safe[8], 12) + 0.11 * R_mix
+            # dK9/dt = f31(K3)f32(K13)*R2 - (f33(K10)f34(K11)f35(K14)*R1)
+            dKdt[8] = g * ( self.f(31, K_safe[2]) * self.f(32, K_safe[12]) * R2 - ( self.f(33, K_safe[9]) * self.f(34, K_safe[10]) * self.f(35, K_safe[13]) * R1 ) )
 
-            # K7
-            dKdt[6] = 0.18 * P(K_safe[2], 13) - 0.14 * P(K_safe[5], 14) + 0.1 * R1
+            # dK10/dt = f36(K3)f37(K9)f38(K15)*R1 + R2 + R3 + R4
+            dKdt[9] = g * ( self.f(36, K_safe[2]) * self.f(37, K_safe[8]) * self.f(38, K_safe[14]) * R1 + R2 + R3 + R4 )
 
-            # K8
-            dKdt[7] = 0.17 * P(K_safe[6], 15) - 0.15 * P(K_safe[4], 16) + 0.12 * R3
+            # dK11/dt = f39(K3)f40(K13)f41(K14)*R1 + R2 + R3 - (f42(K15)*R4)
+            dKdt[10] = g * ( self.f(39, K_safe[2]) * self.f(40, K_safe[12]) * self.f(41, K_safe[13]) * R1 + R2 + R3 - ( self.f(42, K_safe[14]) * R4 ) )
 
-            # K9
-            dKdt[8] = 0.16 * P(K_safe[0], 17) - 0.13 * P(K_safe[10], 18) + 0.1 * R2
+            # dK12/dt = f43(K11)f44(K13)f45(K14)*R1 + R2 + R3 - f46(K15)
+            dKdt[11] = g * ( self.f(43, K_safe[10]) * self.f(44, K_safe[12]) * self.f(45, K_safe[13]) * R1 + R2 + R3 - self.f(46, K_safe[14]) )
 
-            # K10
-            dKdt[9] = 0.15 * P(K_safe[8], 19) + 0.14 * P(K_safe[11], 20) - 0.12 * R4
+            # dK13/dt = f47(K2)f48(K3)*R2
+            dKdt[12] = g * ( self.f(47, K_safe[1]) * self.f(48, K_safe[2]) * R2 )
 
-            # K11
-            dKdt[10] = 0.18 * P(K_safe[9], 21) - 0.16 * P(K_safe[12], 22) + 0.13 * R_mix
+            # dK14/dt = f49(K11)f50(K12)f51(K13)*R1 + R2
+            dKdt[13] = g * ( self.f(49, K_safe[10]) * self.f(50, K_safe[11]) * self.f(51, K_safe[12]) * R1 + R2 )
 
-            # K12
-            dKdt[11] = 0.17 * P(K_safe[10], 23) - 0.15 * P(K_safe[6], 24) + 0.11 * R1
+            # dK15/dt = f52(K2)f53(K3)f54(K13)f55(K14)*R1 + R2
+            dKdt[14] = g * ( self.f(52, K_safe[1]) * self.f(53, K_safe[2]) * self.f(54, K_safe[12]) * self.f(55, K_safe[13]) * R1 + R2 )
 
-            # K13
-            dKdt[12] = 0.18 * P(K_safe[13], 25) - 0.16 * P(K_safe[5], 26) + 0.12 * R3
-
-            # K14
-            dKdt[13] = 0.17 * P(K_safe[11], 27) + 0.15 * P(K_safe[14], 28) - 0.1 * R2
-
-            # K15
-            dKdt[14] = 0.19 * P(K_safe[7], 29) - 0.16 * P(K_safe[9], 30) + 0.13 * R4
-
-            # ✔ плавное приближение к границам
+            # Плавное подавление у границ (не даёт выходить в 0/1)
             for j in range(15):
-                B = 4 * K[j] * (1 - K[j])          # барьер
-                dKdt[j] *= B                       # подавление скорости у границ
+                B = 4.0 * K_safe[j] * (1.0 - K_safe[j])
+                # чуть уменьшаем скорость у крайних значений, но не полностью
+                dKdt[j] = dKdt[j] * (0.5 + 0.5 * B)
 
             return dKdt
 
@@ -248,15 +248,14 @@ class Calculator3:
 
     def solve_system(self):
         try:
-            # начальные условия из параметров
+            # начальные условия из параметров (нормализованные)
             K0 = [self.parameters_norm.get(f"K{i}", 0.3) for i in range(1, 16)]
+            # если нормализация не задана, взять 0.3
+            self.time_points = np.linspace(0, 1, 500)
 
-            self.time_points = np.linspace(0, 10, 500)  # Меньше точек для скорости
-
-            # решение системы
             self.solution = solve_ivp(
                 self.system_equations,
-                [0, 10],
+                [0, 1],         # нормированное время 0..1
                 K0,
                 t_eval=self.time_points,
                 method='RK45',
@@ -264,21 +263,15 @@ class Calculator3:
                 atol=1e-8
             )
 
-            # Нормализуем время
-            if hasattr(self, 'solution') and self.solution is not None:
-                self.original_time = self.solution.t.copy()
-                self.solution.t = self.solution.t / self.solution.t[-1]
-
             return self.solution
 
         except Exception as e:
             print(f"Ошибка при решении системы: {e}")
-            # Простое резервное решение
+            # резервное решение (гладкие синусы)
             t_points = np.linspace(0, 1, 100)
             y_values = np.ones((15, 100)) * 0.5
             for i in range(15):
-                y_values[i] = 0.5 + 0.2 * np.sin(t_points * np.pi * (i + 1) / 15)
-
+                y_values[i] = 0.5 + 0.2 * np.sin(t_points * np.pi * (i + 1) / 15.0)
             self.solution = type('obj', (object,), {
                 't': t_points,
                 'y': y_values
@@ -369,9 +362,10 @@ class Calculator3:
         return img_b64
 
     def plot_disturbances(self):
-        """График внешних возмущений"""
+        """График внешних возмущений в стиле основных графиков"""
         time_points = np.linspace(0, 1, 500)
 
+        # Создаем фигуру с таким же размером как у основных графиков
         fig, ax = plt.subplots(figsize=(12, 6))
 
         disturbance_names = [
@@ -380,21 +374,51 @@ class Calculator3:
             'R3 - Наличие прибыли у предприятия',
             'R4 - Доля современного оборудования на предприятии'
         ]
-        disturbance_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+
+        # Используем цвета из той же палитры что и для основных графиков
+        colors = plt.cm.tab10(np.linspace(0, 1, 4))
+
+        # Все линии сплошные
+        line_styles = ['-', '-', '-', '-']
 
         for i in range(1, 5):
+            # Строим график напрямую по полиному из пользовательских коэффициентов
             y = [self.disturbance_function(t * 10, i) for t in time_points]
-            ax.plot(time_points, y, label=disturbance_names[i-1],
-                    linewidth=3,
-                    color=disturbance_colors[i-1],
+
+            ax.plot(time_points, y,
+                    label=disturbance_names[i-1],
+                    linewidth=2,
+                    color=colors[i-1],
+                    linestyle=line_styles[i-1],
                     alpha=0.8)
 
-        ax.legend(loc='best', fontsize=10)
+            # Добавляем подписи как в основных графиках
+            if len(time_points) > 10:
+                idx = int(len(time_points) * 0.02)
+                x_text = time_points[idx]
+                y_text = y[idx]
+
+                ax.text(
+                    x_text,
+                    y_text,
+                    f'R{i}',
+                    color='black',
+                    fontsize=10,
+                    fontweight='bold',
+                    ha='left',
+                    va='center',
+                    alpha=0.9,
+                    bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=1)
+                )
+
+        # Настройки в стиле основных графиков - легенда над графиком
+        ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02),
+                  ncol=2, fontsize=11, frameon=True)
         ax.set_xlabel('Время', fontsize=12)
-        ax.set_ylabel('Значения возмущений', fontsize=12)
-        ax.set_title('Динамика внешних возмущений', fontsize=14, pad=20)
+        ax.set_ylabel('Значение возмущения', fontsize=12)
         ax.grid(True, alpha=0.3)
-        ax.set_ylim(0.2, 1.0)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1.05)  # От 0 до 1 как у основных графиков
 
         plt.tight_layout()
 
