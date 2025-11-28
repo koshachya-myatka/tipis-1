@@ -235,7 +235,7 @@ class Calculator3:
 
             P = lambda x, idx: self.polynomial_value(x, idx)
 
-            dKdt = self.compute_modified_dKdt(K_safe, P, R1, R2, R3, R4, R_mix)
+            dKdt = self.apply_cor(K_safe, P, R1, R2, R3, R4, R_mix)
 
             for j in range(15):
                 B = 4 * K[j] * (1 - K[j])
@@ -374,7 +374,7 @@ class Calculator3:
         plt.close(fig)
         return img_b64
 
-    def compute_modified_dKdt(self, K_safe, P, R1, R2, R3, R4, R_mix):
+    def apply_cor(self, K_safe, P, R1, R2, R3, R4, R_mix):
         d = np.zeros(15)
 
         d[0]  = 0.15 * P(K_safe[1], 1)  - 0.1  * P(K_safe[2], 2)  + 0.12 * R_mix
