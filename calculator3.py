@@ -51,7 +51,7 @@ class Calculator3:
         for i in range(1, 16):
             param_name = f"K{i}"
             min_r, max_r = self.pR[param_name]
-            base_value = round(random.uniform(min_r, max_r * 0.3), 2)
+            base_value = round(random.uniform(min_r, max_r), 2)
             max_value = round(random.uniform(base_value, max_r), 2)
             parameters[param_name] = base_value
             parameters[f"{param_name}_max"] = max_value
@@ -103,7 +103,7 @@ class Calculator3:
         for i in range(1, 16):
             param_name = f"K{i}"
             min_r, max_r = self.pR[param_name]
-            parameters[param_name] = round(min_r + 0.1 * (max_r - min_r), 2)
+            parameters[param_name] = round(min_r + 0.5 * (max_r - min_r), 2)
             parameters[f"{param_name}_max"] = round(min_r + 0.6 * (max_r - min_r), 2)
 
         for i in range(1, 5):
@@ -179,7 +179,7 @@ class Calculator3:
                         f(7, K_safe[8]) * f(8, K_safe[12]))
             prod_neg = (f(9, K_safe[9]) * f(10, K_safe[10]) * f(11, K_safe[13]) *
                         f(12, K_safe[14]) * R1 + R2 + R3 + R4)
-            dKdt[1] = (prod_pos - 0.9 * prod_neg)
+            dKdt[1] = prod_pos - prod_neg
 
             # dK3/dt = f13(K1) - (f14(K15)*R1 + R3 + R4)
             dKdt[2] = f(13, K_safe[0]) - (f(14, K_safe[14]) * R1 + R3 + R4)
@@ -187,8 +187,8 @@ class Calculator3:
             # dK4/dt = f15(K1)
             dKdt[3] = f(15, K_safe[0])
 
-            # dK5/dt = f16(K1)*R2 - (R1)
-            dKdt[4] = f(16, K_safe[0]) * R2 - 0.9 * R1
+            # dK5/dt = f16(K1)*R2 - R1
+            dKdt[4] = f(16, K_safe[0]) * R2 - R1
 
             # dK6/dt = R2 - (f17(K4)f18(K11)f19(K12)f20(K14)*R1)
             dKdt[5] = R2 - (f(17, K_safe[3]) * f(18, K_safe[10]) *
@@ -235,21 +235,7 @@ class Calculator3:
 
             P = lambda x, idx: self.polynomial_value(x, idx)
 
-            dKdt[0] = 0.15 * P(K_safe[1], 1) - 0.1 * P(K_safe[2], 2) + 0.12 * R_mix
-            dKdt[1] = 0.18 * P(K_safe[0], 3) - 0.11 * P(K_safe[3], 4) + 0.1 * R1
-            dKdt[2] = 0.16 * P(K_safe[4], 5) - 0.14 * P(K_safe[1], 6) * R2 + 0.08 * R_mix
-            dKdt[3] = 0.14 * P(K_safe[0], 7) + 0.1 * P(K_safe[2], 8) - 0.09 * R3
-            dKdt[4] = 0.16 * P(K_safe[3], 9) - 0.12 * P(K_safe[7], 10) + 0.12 * R2
-            dKdt[5] = 0.15 * P(K_safe[1], 11) - 0.16 * P(K_safe[8], 12) + 0.11 * R_mix
-            dKdt[6] = 0.18 * P(K_safe[2], 13) - 0.14 * P(K_safe[5], 14) + 0.1 * R1
-            dKdt[7] = 0.17 * P(K_safe[6], 15) - 0.15 * P(K_safe[4], 16) + 0.12 * R3
-            dKdt[8] = 0.16 * P(K_safe[0], 17) - 0.13 * P(K_safe[10], 18) + 0.1 * R2
-            dKdt[9] = 0.15 * P(K_safe[8], 19) + 0.14 * P(K_safe[11], 20) - 0.12 * R4
-            dKdt[10] = 0.18 * P(K_safe[9], 21) - 0.16 * P(K_safe[12], 22) + 0.13 * R_mix
-            dKdt[11] = 0.17 * P(K_safe[10], 23) - 0.15 * P(K_safe[6], 24) + 0.11 * R1
-            dKdt[12] = 0.18 * P(K_safe[13], 25) - 0.16 * P(K_safe[5], 26) + 0.12 * R3
-            dKdt[13] = 0.17 * P(K_safe[11], 27) + 0.15 * P(K_safe[14], 28) - 0.1 * R2
-            dKdt[14] = 0.19 * P(K_safe[7], 29) - 0.16 * P(K_safe[9], 30) + 0.13 * R4
+            dKdt = self.compute_modified_dKdt(K_safe, P, R1, R2, R3, R4, R_mix)
 
             for j in range(15):
                 B = 4 * K[j] * (1 - K[j])
@@ -388,6 +374,28 @@ class Calculator3:
         plt.close(fig)
         return img_b64
 
+    def compute_modified_dKdt(self, K_safe, P, R1, R2, R3, R4, R_mix):
+        d = np.zeros(15)
+
+        d[0]  = 0.15 * P(K_safe[1], 1)  - 0.1  * P(K_safe[2], 2)  + 0.12 * R_mix
+        d[1]  = 0.18 * P(K_safe[0], 3)  - 0.11 * P(K_safe[3], 4)  + 0.1  * R1
+        d[2]  = 0.16 * P(K_safe[4], 5)  - 0.14 * P(K_safe[1], 6) * R2 + 0.08 * R_mix
+        d[3]  = 0.14 * P(K_safe[0], 7)  + 0.1  * P(K_safe[2], 8)  - 0.09 * R3
+        d[4]  = 0.16 * P(K_safe[3], 9)  - 0.12 * P(K_safe[7], 10) + 0.12 * R2
+        d[5]  = 0.15 * P(K_safe[1], 11) - 0.16 * P(K_safe[8], 12) + 0.11 * R_mix
+        d[6]  = 0.18 * P(K_safe[2], 13) - 0.14 * P(K_safe[5], 14) + 0.1  * R1
+        d[7]  = 0.17 * P(K_safe[6], 15) - 0.15 * P(K_safe[4], 16) + 0.12 * R3
+        d[8]  = 0.16 * P(K_safe[0], 17) - 0.13 * P(K_safe[10], 18) + 0.1  * R2
+        d[9]  = 0.15 * P(K_safe[8], 19) + 0.14 * P(K_safe[11], 20) - 0.12 * R4
+        d[10] = 0.18 * P(K_safe[9], 21) - 0.16 * P(K_safe[12], 22) + 0.13 * R_mix
+        d[11] = 0.17 * P(K_safe[10], 23) - 0.15 * P(K_safe[6], 24) + 0.11 * R1
+        d[12] = 0.18 * P(K_safe[13], 25) - 0.16 * P(K_safe[5], 26) + 0.12 * R3
+        d[13] = 0.17 * P(K_safe[11], 27) + 0.15 * P(K_safe[14], 28) - 0.1  * R2
+        d[14] = 0.19 * P(K_safe[7], 29) - 0.16 * P(K_safe[9], 30) + 0.13 * R4
+
+        return d
+
+
     def plot_disturbances(self):
         time_points = np.linspace(0, 1, 500)
 
@@ -418,7 +426,7 @@ class Calculator3:
                     alpha=0.8)
 
             if len(time_points) > 10:
-                idx = int(len(time_points) * 0.02)
+                idx = int(len(time_points) * 0.97)
                 x_text = time_points[idx]
                 y_text = y[idx]
 
@@ -469,6 +477,30 @@ class Calculator3:
 
         colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
 
+        # Получаем максимальные значения для каждого параметра
+        max_values = [self.parameters_norm.get(f"K{i+1}_max", 1) for i in range(15)]
+        max_values += max_values[:1]
+
+        # Создаем кастомные элементы для легенды
+        from matplotlib.lines import Line2D
+        legend_elements = [
+            Line2D([0], [0], color=colors[0], linewidth=2, linestyle='-', label='Текущие значения (t=0)'),
+            Line2D([0], [0], color=colors[1], linewidth=2, linestyle='-', label='Текущие значения (t=0.25)'),
+            Line2D([0], [0], color=colors[2], linewidth=2, linestyle='-', label='Текущие значения (t=0.5)'),
+            Line2D([0], [0], color=colors[3], linewidth=2, linestyle='-', label='Текущие значения (t=0.75)'),
+            Line2D([0], [0], color=colors[4], linewidth=2, linestyle='-', label='Текущие значения (t=1)'),
+            Line2D([0], [0], color='red', linewidth=2, linestyle='--', label='Предельные значения')
+        ]
+
+        # Легенда над графиками
+        fig.legend(handles=legend_elements,
+                   loc='upper center',
+                   ncol=2,  # Два столбца для лучшего размещения
+                   fontsize=10,
+                   frameon=True,
+                   bbox_to_anchor=(0.5, 1.05))
+
+        # Строим графики
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
             if i >= len(time_points):
                 break
@@ -479,6 +511,8 @@ class Calculator3:
             ax.set_theta_direction(-1)
             ax.plot(angles, values, color=colors[i], linewidth=2, linestyle='solid')
             ax.fill(angles, values, color=colors[i], alpha=0.25)
+            # Добавляем красный контур максимальных пределов
+            ax.plot(angles, max_values, color='red', linewidth=2, linestyle='dashed')
 
             ax.set_xticks(angles[:-1])
             ax.set_xticklabels(categories, fontsize=8)
@@ -488,6 +522,7 @@ class Calculator3:
             ax.set_ylim(0, 1.05)
             ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color='black', pad=10)
 
+        # Скрываем неиспользуемые subplots
         for i in range(len(time_points), len(axes)):
             fig.delaxes(axes[i])
 
