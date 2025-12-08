@@ -199,9 +199,7 @@ class Calculator4:
 
     def polynomial_value(self, x, i):
         """Вычисление значения полинома f_i(x) с использованием класса Polynomial"""
-        # Используем класс Polynomial из примера
-        # Ограничиваем x для стабильности
-        x = np.clip(x, -1, 2)  # Разрешаем немного выходить за пределы [0,1]
+        x = np.clip(x, -1, 2)
         value = self.functions[i-1].calc(x)
         # Ограничиваем значения полиномов
         return float(np.clip(value, 0, 2))
@@ -229,7 +227,6 @@ class Calculator4:
             for func_idx, var_idx in zip(range(2, 15), range(1, 14)):
                 prod_X1 *= f(func_idx, X_safe[var_idx])
 
-            # Ограничиваем произведение
             prod_X1 = np.clip(prod_X1, 0, 5)
 
             dXdt[0] = (1.0 / self.parameters_norm.get("X1_max", 1.0)) * \
@@ -240,11 +237,9 @@ class Calculator4:
             # f15(X1) * f17(X3) * ... * f28(X14)
             # Индексы функций: 15, 17-28 (всего 13 функций)
             for func_idx in [15] + list(range(17, 29)):
-                # Соответствие индекса функции индексу переменной
                 if func_idx == 15:  # f15(X1)
                     var_idx = 0
                 elif 17 <= func_idx <= 28:  # f17-f28
-                    # исправлено: f17 -> X3 (индекс 2), поэтому вычитаем 15
                     var_idx = func_idx - 15
                 prod_X2 *= f(func_idx, X_safe[var_idx])
 
@@ -274,7 +269,7 @@ class Calculator4:
                     var_idx = i - 49 + 6  # f49 -> X7 (индекс 6)
                 elif i == 56:  # f56: X1
                     var_idx = 0
-                else:  # пропускаем f47-f48
+                else:
                     continue
                 prod_pos_X4 *= f(i, X_safe[var_idx])
 
@@ -285,7 +280,7 @@ class Calculator4:
             dXdt[3] = (1.0 / self.parameters_norm.get("X4_max", 1.0)) * \
                       (prod_pos_X4 * zeta5 - prod_neg_X4 * (zeta1 + zeta2 + zeta3 + zeta4))
 
-            # 5. dX5/dt (Уравнение 2.13) - ИСПРАВЛЕНО: ζ₅ вычитается один раз
+            # 5. dX5/dt (Уравнение 2.13)
             prod_X5 = (f(57, X_safe[3]) *  # X4
                        f(58, X_safe[5]) *  # X6
                        f(59, X_safe[8]) *  # X9
@@ -382,7 +377,7 @@ class Calculator4:
             dXdt[10] = (1.0 / self.parameters_norm.get("X11_max", 1.0)) * \
                        (prod_pos_X11 - prod_neg_X11 * zeta_sum)
 
-            # 12. dX12/dt (Уравнение 2.20) - ИСПРАВЛЕНО: ζ1 + ζ4 + ζ5 - ζ3
+            # 12. dX12/dt (Уравнение 2.20)
             prod_X12 = 1.0
             # f130-f141: X1-X12 (кроме X13), f142: X14
             for i in range(130, 143):  # f130-f142
@@ -454,7 +449,7 @@ class Calculator4:
 
             self.time_points = np.linspace(0, 10, 500)
 
-            # Решение системы с более строгими параметрами
+            # Решение системы
             self.solution = solve_ivp(
                 self.system_equations,
                 [0, 10],
@@ -470,8 +465,6 @@ class Calculator4:
             if hasattr(self, 'solution') and self.solution is not None:
                 self.original_time = self.solution.t.copy()
                 self.solution.t = self.solution.t / self.solution.t[-1]
-                # УБИРАЕМ ОГРАНИЧЕНИЯ, чтобы значения могли уходить вниз
-                # self.solution.y = np.clip(self.solution.y, -0.2, 1.2)
 
             return self.solution
 
@@ -513,7 +506,7 @@ class Calculator4:
         if self.solution is None:
             self.solve_system()
 
-        # Создаем 1 вытянутый вертикальный график
+        # Создаем график
         fig, ax = plt.subplots(1, 1, figsize=(9, 15))
         colors = plt.cm.tab20(np.linspace(0, 1, 14))
 
@@ -553,15 +546,12 @@ class Calculator4:
             y_label = self.names[f'X{i+1}']
             x_subscript = f"X{self._convert_to_subscript(i+1)}"
 
-            # Используем кубические сплайны для более гладких линий
             if len(t) > 10:
                 # Создаем больше точек для плавности
                 t_interp = np.linspace(t.min(), t.max(), 500)
 
-                # Проверяем, достаточно ли данных для сплайна
                 if len(t) >= 8:
                     try:
-                        # Используем B-сплайн с оптимальным сглаживанием
                         from scipy.interpolate import make_smoothing_spline
 
                         # Сортируем точки по времени
@@ -569,25 +559,20 @@ class Calculator4:
                         t_sorted = t[sort_idx]
                         y_sorted = y[sort_idx]
 
-                        # Проверяем на уникальность точек
                         t_unique, idx_unique = np.unique(t_sorted, return_index=True)
                         if len(t_unique) >= 4:
-                            # Используем сплайн со сглаживанием
                             spline = make_smoothing_spline(t_unique, y_sorted[idx_unique],
                                                            lam=0.1)
                             y_interp = spline(t_interp)
                         else:
-                            # Кубическая интерполяция
                             from scipy.interpolate import interp1d
                             interp_func = interp1d(t, y, kind='cubic',
                                                    bounds_error=False,
                                                    fill_value="extrapolate")
                             y_interp = interp_func(t_interp)
 
-                        # Убедимся, что нет резких скачков
                         dy = np.diff(y_interp)
                         if np.max(np.abs(dy)) > 0.5:
-                            # Применяем дополнительное сглаживание
                             from scipy.ndimage import gaussian_filter1d
                             y_interp = gaussian_filter1d(y_interp, sigma=2)
 
@@ -610,7 +595,6 @@ class Calculator4:
                         t_interp = t
                         y_interp = y
 
-                # Построение сглаженной линии
                 line, = ax.plot(t_interp, y_interp,
                                 label=f'{x_subscript}: {y_label[:40]}...',
                                 color=colors[i],
@@ -628,7 +612,6 @@ class Calculator4:
 
             # Добавляем метки на график
             if len(t) > 10:
-                # Размещаем метки равномерно вдоль линии
                 for label_pos in [0.97, 0, 0]:
                     idx = int(len(t) * label_pos)
                     if idx < len(t):
@@ -651,7 +634,7 @@ class Calculator4:
                             alpha=0.9,
                             bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=1)
                         )
-                        break  # Только одну метку на линию
+                        break
 
         # Настройки графика
         ax.set_xlabel('Время', fontsize=12)
@@ -664,7 +647,7 @@ class Calculator4:
         ax.axhline(y=0, color='gray', linestyle='-', alpha=0.4, linewidth=0.8)
         ax.axhline(y=1, color='red', linestyle='--', alpha=0.4, linewidth=0.8)
 
-        # Создаем легенду НАД графиком
+        # Создаем легенду над графиком
         fig.subplots_adjust(top=0.82)
 
         # Создаем легенду с одной колонкой
@@ -693,7 +676,7 @@ class Calculator4:
                  family='monospace')
 
         # Настраиваем отступы для вертикального графика
-        plt.tight_layout(rect=[0, 0.13, 1, 0.80])  # Увеличили нижний отступ для функций
+        plt.tight_layout(rect=[0, 0.13, 1, 0.80])
 
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
@@ -731,8 +714,8 @@ class Calculator4:
         # Для радар-чартов нормализуем от минимума к максимуму или используем фиксированный диапазон
         value_min = min(all_values)
         value_max = max(all_values)
-        radar_min = min(0, value_min - 0.1)  # Ниже нуля если есть отрицательные
-        radar_max = max(1, value_max + 0.1)  # Выше 1 если есть значения больше 1
+        radar_min = min(0, value_min - 0.1)
+        radar_max = max(1, value_max + 0.1)
 
         # Строим графики
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
@@ -762,7 +745,6 @@ class Calculator4:
             ax.set_ylim(radar_min, radar_max)
             ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color='black', pad=15)
 
-        # Скрываем неиспользуемые subplots
         for i in range(len(time_points), len(axes)):
             fig.delaxes(axes[i])
 
@@ -810,7 +792,6 @@ class Calculator4:
             zeta_subscript = f"ζ{self._convert_to_subscript(i)}"
             name = self.disturbance_names.get(f"zeta{i}", f"Возмущение {i}")
 
-            # Сглаживание линий возмущений
             from scipy.interpolate import make_interp_spline
             if len(time_points) > 20:
                 t_smooth = np.linspace(time_points.min(), time_points.max(), 300)
