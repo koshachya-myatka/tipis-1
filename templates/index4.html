@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Эффективность ПО хранилища данных</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+<h1>Эффективность программного обеспечения хранилища данных</h1>
+<div id="messages"></div>
+
+<div class="tables-container">
+    <!-- Таблица параметров X1-X14 -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Параметры модели</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Параметр</th>
+                    <th>Название</th>
+                    <th>Начальное (%)</th>
+                    <th>Макс. (%)</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for i in range(1, 15) %}
+                {% set param_name = 'X' ~ i %}
+                <tr>
+                    <td>X<sub>{{ i }}</sub></td>
+                    <td>
+                        {% if param_name == 'X1' %}Эффективность функционирования хранилища данных
+                        {% elif param_name == 'X2' %}Качество программного обеспечения (ПО)
+                        {% elif param_name == 'X3' %}Корректность ПО
+                        {% elif param_name == 'X4' %}Надежность программного обеспечения
+                        {% elif param_name == 'X5' %}Доступность программного обеспечения
+                        {% elif param_name == 'X6' %}Возможность интенсивного использования ПО
+                        {% elif param_name == 'X7' %}Прослеживаемость ПО
+                        {% elif param_name == 'X8' %}Функциональная полнота ПО
+                        {% elif param_name == 'X9' %}Обеспечение требуемой последовательности работ при проектировании хранилища
+                        {% elif param_name == 'X10' %}Практичность ПО
+                        {% elif param_name == 'X11' %}Устойчивость к ошибкам данных программного обеспечения
+                        {% elif param_name == 'X12' %}Эффективность выполнения транзакций
+                        {% elif param_name == 'X13' %}Степень мотивации персонала
+                        {% elif param_name == 'X14' %}Удобство тестирования ПО
+                        {% endif %}
+                    </td>
+                    <td>
+                        <input type="number"
+                               min="0" max="100"
+                               id="X{{ i }}"
+                               value="{{ parameters.get('X' ~ i, '') }}"
+                               step="0.01">
+                    </td>
+                    <td>
+                        <input type="number"
+                               min="0" max="100"
+                               id="X{{ i }}_max"
+                               value="{{ parameters.get('X' ~ i ~ '_max', '') }}"
+                               step="0.01">
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Таблица возмущений -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Возмущения</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Возмущение</th>
+                    <th>Название</th>
+                    <th colspan="4">Коэффициенты</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% set zeta_names = [
+                'Увеличение количества источников новых данных',
+                'Частота изменения периодов сдачи финансовой отчетности предприятия',
+                'Сокращение квалифицированной поддержки вендора',
+                'Рост интенсивности перехода на Open Source решения',
+                'Увеличение количества новых стандартов при реализации Open Source решений'
+                ] %}
+
+                {% for i in range(1, 6) %}
+                <tr>
+                    <td>ζ<sub>{{ i }}</sub></td>
+                    <td>{{ zeta_names[i-1] }}</td>
+                    <td class="formula-row">
+                        <input type="number" step="0.001" class="formula-input" id="zeta{{ i }}_a3"
+                               value="{{ parameters.get('zeta' ~ i ~ '_a3', '') }}"> * t³ +
+                        <input type="number" step="0.001" class="formula-input" id="zeta{{ i }}_a2"
+                               value="{{ parameters.get('zeta' ~ i ~ '_a2', '') }}"> * t² +
+                        <input type="number" step="0.001" class="formula-input" id="zeta{{ i }}_a1"
+                               value="{{ parameters.get('zeta' ~ i ~ '_a1', '') }}"> * t +
+                        <input type="number" step="0.001" class="formula-input" id="zeta{{ i }}_a0"
+                               value="{{ parameters.get('zeta' ~ i ~ '_a0', '') }}">
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Таблица выборочных функций -->
+    <div class="table-wrapper">
+        <h3 class="table-title">Внутренние функции</h3>
+        <div class="scrollable-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>Функция</th>
+                    <th>Аргумент</th>
+                    <th>Коэффициенты</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for i in range(1, 161) %}
+                <tr>
+                    <td>f<sub>{{ i }}</sub></td>
+                    <td>
+                        {% if i == 1 %}X<sub>1</sub>
+                        {% elif i >= 2 and i <= 14 %}X<sub>{{ i }}</sub>
+                        {% elif i >= 15 and i <= 28 %}X<sub>{{ i-14 }}</sub>
+                        {% elif i >= 29 and i <= 42 %}X<sub>{{ i-28 }}</sub>
+                        {% elif i == 56 %}X<sub>1</sub>
+                        {% elif i >= 43 and i <= 55 %}X<sub>{{ i-42 }}</sub>
+                        {% elif i >= 57 and i <= 61 %}{% set idx = [4,6,9,10,13][i-57] %}X<sub>{{ idx }}</sub>
+                        {% elif i == 67 %}X<sub>6</sub>
+                        {% elif i >= 62 and i <= 75 %}{% if i != 67 %}X<sub>{{ i-61 }}</sub>{% endif %}
+                        {% elif i == 76 %}X<sub>2</sub>
+                        {% elif i == 77 %}X<sub>4</sub>
+                        {% elif i == 78 %}X<sub>14</sub>
+                        {% elif i >= 79 and i <= 92 %}X<sub>{{ i-78 }}</sub>
+                        {% elif i >= 93 and i <= 104 %}X<sub>{{ i-92 }}</sub>
+                        {% elif i == 114 %}X<sub>10</sub>
+                        {% elif i >= 105 and i <= 116 %}{% if i != 114 %}X<sub>{{ i-104 }}</sub>{% endif %}
+                        {% elif i == 117 %}X<sub>13</sub>
+                        {% elif i == 118 %}X<sub>14</sub>
+                        {% elif i >= 119 and i <= 127 %}{% set idx = [1,2,3,4,8,10,12,13,14][i-119] %}X<sub>{{ idx }}</sub>
+                        {% elif i == 128 %}X<sub>5</sub>
+                        {% elif i == 129 %}X<sub>6</sub>
+                        {% elif i >= 130 and i <= 142 %}X<sub>{{ i-129 }}</sub>
+                        {% elif i >= 143 and i <= 155 %}X<sub>{{ i-142 }}</sub>
+                        {% elif i == 156 %}X<sub>9</sub>
+                        {% elif i == 157 %}X<sub>5</sub>
+                        {% elif i == 158 %}X<sub>7</sub>
+                        {% elif i == 159 %}X<sub>11</sub>
+                        {% elif i == 160 %}X<sub>13</sub>
+                        {% else %}X<sub>{{ i % 14 + 1 }}</sub>
+                        {% endif %}
+                    </td>
+                    <td class="formula-row">
+                        <input type="number" step="0.001" class="formula-input-small"
+                               id="f{{ i }}_a3" value="{{ parameters.get('f' ~ i ~ '_a3', '0.0') }}"> *x³ +
+                        <input type="number" step="0.001" class="formula-input-small"
+                               id="f{{ i }}_a2" value="{{ parameters.get('f' ~ i ~ '_a2', '0.0') }}"> *x² +
+                        <input type="number" step="0.001" class="formula-input-small"
+                               id="f{{ i }}_a1" value="{{ parameters.get('f' ~ i ~ '_a1', '0.5') }}"> *x +
+                        <input type="number" step="0.001" class="formula-input-small"
+                               id="f{{ i }}_a0" value="{{ parameters.get('f' ~ i ~ '_a0', '0.2') }}">
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="buttons-container">
+    <a href="{{ url_for('main') }}" class="home-button">На главную</a>
+    <button id="clearBtn">Очистить значения</button>
+    <button id="randomBtn">Случайные значения</button>
+    <button id="plotBtn">Построить диаграммы</button>
+</div>
+
+<div id="diagramsContainer" class="diagrams-container" style="display: none;">
+    <h2>Результаты моделирования</h2>
+    <div class="diagram">
+        <h3>Динамика показателей эффективности</h3>
+        <img id="timeSeriesImg" src="" alt="График изменения параметров по времени">
+    </div>
+    <div class="diagram">
+        <h3>Лепестковые диаграммы показателей</h3>
+        <img id="radarChartsImg" src="" alt="Лепестковые диаграммы">
+    </div>
+</div>
+
+<script>
+    // Функция для отображения сообщений
+    function showMessage(message, type, duration = 5000) {
+        const messagesDiv = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+        messageDiv.textContent = message;
+        messagesDiv.appendChild(messageDiv);
+        messageDiv.style.opacity = 0;
+        setTimeout(() => (messageDiv.style.opacity = 1), 50);
+        setTimeout(() => {
+            messageDiv.style.opacity = 0;
+            setTimeout(() => messageDiv.remove(), 500);
+        }, duration);
+    }
+
+    // Функция для получения всех значений из формы
+    function getFormData() {
+        const inputs = document.querySelectorAll('input');
+        const data = {};
+        inputs.forEach(input => {
+            data[input.id] = input.value;
+        });
+        return data;
+    }
+
+    // Функция для проверки значений параметров
+    function validateParameterValues() {
+        let isValid = true;
+        let invalidParams = [];
+
+        for (let i = 1; i <= 14; i++) {
+            const initialInput = document.getElementById(`X${i}`);
+            const maxInput = document.getElementById(`X${i}_max`);
+
+            if (!initialInput || !maxInput) continue;
+
+            const initValue = parseFloat(initialInput.value);
+            const maxValue = parseFloat(maxInput.value);
+
+            // Сбрасываем цвет перед проверкой
+            initialInput.style.borderColor = '';
+            maxInput.style.borderColor = '';
+
+            if (isNaN(initValue) || isNaN(maxValue)) continue;
+
+            let hasError = false;
+
+            // Проверяем: initial ≤ max
+            if (maxValue < initValue) {
+                maxInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+                hasError = true;
+            }
+
+            // Проверяем диапазон 0-100%
+            if (initValue < 0 || initValue > 100 || maxValue < 0 || maxValue > 100) {
+                initialInput.style.borderColor = '#e74c3c';
+                maxInput.style.borderColor = '#e74c3c';
+                hasError = true;
+            }
+
+            if (hasError) {
+                isValid = false;
+                invalidParams.push(`X${i}`);
+            }
+        }
+
+        if (!isValid) {
+            const list = invalidParams.join(', ');
+            showMessage(
+                `Ошибка: проверьте значения параметров ${list} (0-100%, начальное ≤ max)`,
+                'error'
+            );
+        }
+
+        return isValid;
+    }
+
+    // Проверка одного параметра при вводе
+    function validateSingleParameter(index) {
+        const initialInput = document.getElementById(`X${index}`);
+        const maxInput = document.getElementById(`X${index}_max`);
+
+        if (!initialInput || !maxInput) return;
+
+        const initValue = parseFloat(initialInput.value);
+        const maxValue = parseFloat(maxInput.value);
+
+        // Сбрасываем цвета перед проверкой
+        [initialInput, maxInput].forEach(input => {
+            input.style.borderColor = '';
+        });
+
+        // Проверяем, если оба значения заданы
+        if (!isNaN(initValue) && !isNaN(maxValue)) {
+            if (maxValue < initValue) {
+                maxInput.style.borderColor = '#e74c3c';
+                initialInput.style.borderColor = '#e74c3c';
+            }
+            if (initValue < 0 || initValue > 100 || maxValue < 0 || maxValue > 100) {
+                initialInput.style.borderColor = '#e74c3c';
+                maxInput.style.borderColor = '#e74c3c';
+            }
+        }
+    }
+
+    // Добавляем обработчики событий для проверки при вводе
+    for (let i = 1; i <= 14; i++) {
+        const initialInput = document.getElementById(`X${i}`);
+        const maxInput = document.getElementById(`X${i}_max`);
+
+        [initialInput, maxInput].forEach(input => {
+            if (!input) return;
+            input.addEventListener('input', () => validateSingleParameter(i));
+            input.addEventListener('blur', () => validateSingleParameter(i));
+        });
+    }
+
+    // Очистка всех значений
+    document.getElementById('clearBtn').addEventListener('click', function () {
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.value = '';
+            input.style.borderColor = '';
+        });
+        document.getElementById('diagramsContainer').style.display = 'none';
+
+        fetch('/clear4', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage('Все значения очищены', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Ошибка при очистке значений', 'error');
+            });
+    });
+
+    // Случайные значения
+    document.getElementById('randomBtn').addEventListener('click', function () {
+        fetch('/random4', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    for (const [key, value] of Object.entries(data.parameters)) {
+                        const input = document.getElementById(key);
+                        if (input) {
+                            input.value = value;
+                            input.style.borderColor = '';
+                        }
+                    }
+                    showMessage('Значения заполнены случайными данными', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Ошибка при генерации случайных значений', 'error');
+            });
+    });
+
+    // Построение диаграмм
+    document.getElementById('plotBtn').addEventListener('click', function () {
+        if (!validateParameterValues()) return;
+
+        const formData = getFormData();
+
+        fetch('/plot4', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('timeSeriesImg').src = 'data:image/png;base64,' + data.time_series;
+                    document.getElementById('radarChartsImg').src = 'data:image/png;base64,' + data.radar_charts;
+                    document.getElementById('diagramsContainer').style.display = 'block';
+                    showMessage('Диаграммы успешно построены', 'success');
+                } else {
+                    showMessage(data.message || 'Неизвестная ошибка', 'error');
+                }
+            })
+            .catch((error) => {
+                console.error('Ошибка при построении диаграмм:', error);
+                showMessage('Ошибка при построении диаграмм: ' + error.message, 'error');
+            });
+    });
+</script>
+</body>
+</html>

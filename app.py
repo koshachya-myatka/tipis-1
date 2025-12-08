@@ -4,12 +4,14 @@ from flask import Flask, request, render_template, jsonify
 from calculator import Calculator
 from calculator2 import Calculator2
 from calculator3 import Calculator3
+from calculator4 import Calculator4  # Добавляем импорт калькулятора 4
 
 app = Flask(__name__)
 
 CALCULATOR = None
 CALCULATOR2 = None
 CALCULATOR3 = None
+CALCULATOR4 = None  # Добавляем переменную для калькулятора 4
 
 # Главная страница
 @app.route("/")
@@ -330,6 +332,126 @@ def plot_diagrams3():
             "time_series": time_series_b64,
             "radar_charts": radar_b64,
             "disturbances": disturbances_b64  # Добавляем в ответ
+        })
+    except Exception as e:
+        return jsonify(
+            {"status": "error", "message": f"Ошибка при построении графиков: {str(e)}"}
+        )
+
+
+# ========== КАЛЬКУЛЯТОР 4: Эффективность ПО хранилища данных ==========
+
+def init_calculator4():
+    global CALCULATOR4
+    CALCULATOR4 = Calculator4()
+    return CALCULATOR4.parameters
+
+def update_calculator4_from_form(form_data):
+    global CALCULATOR4
+    if CALCULATOR4 is None:
+        init_calculator4()
+
+    CALCULATOR4.parameters = {}
+    for key, value in form_data.items():
+        if value and value != "":
+            try:
+                if "." in value:
+                    CALCULATOR4.parameters[key] = float(value)
+                else:
+                    CALCULATOR4.parameters[key] = int(value)
+            except ValueError:
+                CALCULATOR4.parameters[key] = value
+
+    # Убедимся, что все необходимые X параметры присутствуют
+    for i in range(1, 15):
+        param_name = f"X{i}"
+        if param_name not in CALCULATOR4.parameters:
+            min_val, max_val = CALCULATOR4.pR[param_name]
+            CALCULATOR4.parameters[param_name] = (min_val + max_val) / 2
+
+    # Также убедимся, что присутствуют max значения
+    for i in range(1, 15):
+        param_name = f"X{i}"
+        max_name = f"{param_name}_max"
+        if max_name not in CALCULATOR4.parameters:
+            min_val, max_val = CALCULATOR4.pR[param_name]
+            CALCULATOR4.parameters[max_name] = max_val
+
+    # Убедимся, что коэффициенты полиномов f1-f160 присутствуют
+    for i in range(1, 161):
+        for coef in ['a3', 'a2', 'a1', 'a0']:
+            param_name = f"f{i}_{coef}"
+            if param_name not in CALCULATOR4.parameters:
+                min_val, max_val = CALCULATOR4.coeff_range[coef]
+                CALCULATOR4.parameters[param_name] = (min_val + max_val) / 2
+
+    # Убедимся, что коэффициенты возмущений ζ1-ζ5 присутствуют
+    for i in range(1, 6):
+        for coef in ['a3', 'a2', 'a1', 'a0']:
+            param_name = f"zeta{i}_{coef}"
+            if param_name not in CALCULATOR4.parameters:
+                min_val, max_val = CALCULATOR4.coeff_range[coef]
+                CALCULATOR4.parameters[param_name] = (min_val + max_val) / 2
+
+    # Обновляем нормализованные параметры
+    CALCULATOR4.parameters_norm = CALCULATOR4._get_normalized(CALCULATOR4.parameters)
+    return CALCULATOR4.parameters
+
+@app.route("/lab4")
+def index4():
+    global CALCULATOR4
+    if CALCULATOR4 is None:
+        parameters = init_calculator4()
+    else:
+        parameters = CALCULATOR4.parameters
+
+    names = CALCULATOR4.names if CALCULATOR4 else {}
+    disturbance_names = CALCULATOR4.disturbance_names if CALCULATOR4 else {}
+    return render_template("index4.html",
+                           parameters=parameters,
+                           names=names,
+                           disturbance_names=disturbance_names)
+
+@app.route("/clear4", methods=["POST"])
+def clear_values4():
+    global CALCULATOR4
+    CALCULATOR4 = None
+    return jsonify({"status": "success"})
+
+@app.route("/random4", methods=["POST"])
+def random_values4():
+    parameters = init_calculator4()
+    return jsonify({"status": "success", "parameters": parameters})
+
+@app.route("/plot4", methods=["POST"])
+def plot_diagrams4():
+    global CALCULATOR4
+    form_data = request.json
+
+    empty_fields = []
+    for key, value in form_data.items():
+        if value == "":
+            empty_fields.append(key)
+    if empty_fields:
+        return jsonify({
+            "status": "error",
+            "message": "Не все поля заполнены",
+            "empty_fields": empty_fields,
+        })
+
+    update_calculator4_from_form(form_data)
+
+    try:
+        CALCULATOR4.solve_system()
+        time_series_b64 = CALCULATOR4.plot_time_series()
+        radar_b64 = CALCULATOR4.plot_radar_charts()
+        # disturbances_b64 = CALCULATOR4.plot_disturbances()  # Опционально
+
+        return jsonify({
+            "status": "success",
+            "time_series": time_series_b64,
+            "radar_charts": radar_b64,
+            # "disturbances": disturbances_b64  # Если нужно
         })
     except Exception as e:
         return jsonify(
