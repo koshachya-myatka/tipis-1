@@ -395,6 +395,13 @@ def update_calculator4_from_form(form_data):
 
     # Обновляем нормализованные параметры
     CALCULATOR4.parameters_norm = CALCULATOR4._get_normalized(CALCULATOR4.parameters)
+
+    # ВАЖНО: Переинициализируем полиномы с новыми коэффициентами!
+    CALCULATOR4.init_polynomials()
+
+    # Обнуляем решение, чтобы система пересчиталась
+    CALCULATOR4.solution = None
+
     return CALCULATOR4.parameters
 
 @app.route("/lab4")

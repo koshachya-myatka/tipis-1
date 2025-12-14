@@ -109,7 +109,6 @@
         </div>
     </div>
 
-    <!-- Таблица выборочных функций -->
     <div class="table-wrapper">
         <h3 class="table-title">Внутренние функции</h3>
         <div class="scrollable-table">
@@ -117,55 +116,82 @@
                 <thead>
                 <tr>
                     <th>Функция</th>
-                    <th>Аргумент</th>
-                    <th>Коэффициенты</th>
+                    <th>Формула</th>
                 </tr>
                 </thead>
                 <tbody>
-                {% for i in range(1, 161) %}
+                {% set f_to_x = {
+                1: (1, True),
+                16: (2, True),
+                67: (6, True),
+                104: (10, True),
+                2: (2, False), 3: (3, False), 4: (4, False), 5: (5, False),
+                6: (6, False), 7: (7, False), 8: (8, False), 9: (9, False),
+                10: (10, False), 11: (11, False), 12: (12, False), 13: (13, False), 14: (14, False),
+                15: (1, False), 17: (3, False), 18: (4, False), 19: (5, False), 20: (6, False),
+                21: (7, False), 22: (8, False), 23: (9, False), 24: (10, False), 25: (11, False),
+                26: (12, False), 27: (13, False), 28: (14, False),
+                29: (1, False), 30: (2, False), 31: (3, False), 32: (4, False), 33: (5, False),
+                34: (6, False), 35: (7, False), 36: (8, False), 37: (9, False), 38: (10, False),
+                39: (11, False), 40: (12, False), 41: (13, False), 42: (14, False),
+                43: (1, False), 44: (2, False), 45: (3, False), 46: (4, False),
+                47: (5, False), 48: (6, False),
+                49: (7, False), 50: (8, False), 51: (9, False), 52: (10, False),
+                53: (11, False), 54: (12, False), 55: (13, False),
+                56: (1, False),
+                57: (4, False), 58: (6, False), 59: (9, False), 60: (10, False), 61: (13, False),
+                62: (1, False), 63: (2, False), 64: (3, False), 65: (4, False), 66: (5, False),
+                68: (7, False), 69: (8, False), 70: (9, False), 71: (10, False), 72: (11, False),
+                73: (12, False), 74: (13, False), 75: (14, False),
+                76: (2, False), 77: (4, False), 78: (14, False),
+                79: (4, False), 80: (6, False), 81: (9, False), 82: (10, False),
+                83: (1, False), 84: (2, False), 85: (3, False), 86: (4, False), 87: (5, False),
+                88: (6, False), 89: (7, False), 90: (10, False), 91: (11, False), 92: (12, False),
+                93: (13, False), 94: (14, False),
+                95: (1, False), 96: (2, False), 97: (3, False), 98: (4, False), 99: (5, False),
+                100: (6, False), 101: (7, False), 102: (8, False), 103: (9, False),
+                105: (11, False), 106: (12, False), 107: (13, False), 108: (14, False),
+                109: (1, False), 110: (2, False), 111: (3, False), 112: (4, False),
+                113: (8, False), 114: (10, False), 115: (12, False), 116: (13, False), 117: (14, False),
+                118: (5, False), 119: (6, False),
+                120: (1, False), 121: (2, False), 122: (3, False), 123: (4, False),
+                124: (5, False), 125: (6, False), 126: (7, False), 127: (8, False),
+                128: (9, False), 129: (10, False), 130: (11, False), 131: (13, False), 132: (14, False),
+                133: (1, False), 134: (2, False), 135: (3, False), 136: (4, False),
+                137: (5, False), 138: (6, False), 139: (7, False), 140: (8, False),
+                141: (10, False), 142: (11, False), 143: (12, False), 144: (13, False), 145: (14, False),
+                146: (9, False),
+                147: (5, False), 148: (7, False), 149: (11, False), 150: (13, False),
+                } %}
+
+                {% for i in range(1, 151) %}
+                {% set x_index = f_to_x.get(i, (1, False))[0] %}
+                {% set is_constant = f_to_x.get(i, (1, False))[1] %}
+
                 <tr>
-                    <td>f<sub>{{ i }}</sub></td>
                     <td>
-                        {% if i == 1 %}X<sub>1</sub>
-                        {% elif i >= 2 and i <= 14 %}X<sub>{{ i }}</sub>
-                        {% elif i >= 15 and i <= 28 %}X<sub>{{ i-14 }}</sub>
-                        {% elif i >= 29 and i <= 42 %}X<sub>{{ i-28 }}</sub>
-                        {% elif i == 56 %}X<sub>1</sub>
-                        {% elif i >= 43 and i <= 55 %}X<sub>{{ i-42 }}</sub>
-                        {% elif i >= 57 and i <= 61 %}{% set idx = [4,6,9,10,13][i-57] %}X<sub>{{ idx }}</sub>
-                        {% elif i == 67 %}X<sub>6</sub>
-                        {% elif i >= 62 and i <= 75 %}{% if i != 67 %}X<sub>{{ i-61 }}</sub>{% endif %}
-                        {% elif i == 76 %}X<sub>2</sub>
-                        {% elif i == 77 %}X<sub>4</sub>
-                        {% elif i == 78 %}X<sub>14</sub>
-                        {% elif i >= 79 and i <= 92 %}X<sub>{{ i-78 }}</sub>
-                        {% elif i >= 93 and i <= 104 %}X<sub>{{ i-92 }}</sub>
-                        {% elif i == 114 %}X<sub>10</sub>
-                        {% elif i >= 105 and i <= 116 %}{% if i != 114 %}X<sub>{{ i-104 }}</sub>{% endif %}
-                        {% elif i == 117 %}X<sub>13</sub>
-                        {% elif i == 118 %}X<sub>14</sub>
-                        {% elif i >= 119 and i <= 127 %}{% set idx = [1,2,3,4,8,10,12,13,14][i-119] %}X<sub>{{ idx }}</sub>
-                        {% elif i == 128 %}X<sub>5</sub>
-                        {% elif i == 129 %}X<sub>6</sub>
-                        {% elif i >= 130 and i <= 142 %}X<sub>{{ i-129 }}</sub>
-                        {% elif i >= 143 and i <= 155 %}X<sub>{{ i-142 }}</sub>
-                        {% elif i == 156 %}X<sub>9</sub>
-                        {% elif i == 157 %}X<sub>5</sub>
-                        {% elif i == 158 %}X<sub>7</sub>
-                        {% elif i == 159 %}X<sub>11</sub>
-                        {% elif i == 160 %}X<sub>13</sub>
-                        {% else %}X<sub>{{ i % 14 + 1 }}</sub>
-                        {% endif %}
+                        f<sub>{{ i }}</sub>(X<sub>{{ x_index }}</sub>)
                     </td>
                     <td class="formula-row">
+                        {% if is_constant %}
+                        f<sub>{{ i }}</sub> = 1 (константа)
+                        {% else %}
+                        f<sub>{{ i }}</sub> =
                         <input type="number" step="0.001" class="formula-input-small"
-                               id="f{{ i }}_a3" value="{{ parameters.get('f' ~ i ~ '_a3', '0.0') }}"> *x³ +
+                               id="f{{ i }}_a3" value="{{ parameters.get('f' ~ i ~ '_a3', '0.0') }}"> *
+                        X<sub>{{ x_index }}</sub>³ +
+
                         <input type="number" step="0.001" class="formula-input-small"
-                               id="f{{ i }}_a2" value="{{ parameters.get('f' ~ i ~ '_a2', '0.0') }}"> *x² +
+                               id="f{{ i }}_a2" value="{{ parameters.get('f' ~ i ~ '_a2', '0.0') }}"> *
+                        X<sub>{{ x_index }}</sub>² +
+
                         <input type="number" step="0.001" class="formula-input-small"
-                               id="f{{ i }}_a1" value="{{ parameters.get('f' ~ i ~ '_a1', '0.5') }}"> *x +
+                               id="f{{ i }}_a1" value="{{ parameters.get('f' ~ i ~ '_a1', '0.5') }}"> *
+                        X<sub>{{ x_index }}</sub> +
+
                         <input type="number" step="0.001" class="formula-input-small"
                                id="f{{ i }}_a0" value="{{ parameters.get('f' ~ i ~ '_a0', '0.2') }}">
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

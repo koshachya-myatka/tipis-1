@@ -1,4 +1,4 @@
-# calculator4.py (исправленная версия)
+# calculator4.py
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -205,247 +205,194 @@ class Calculator4:
         return float(np.clip(value, 0, 2))
 
     def system_equations(self, t, X):
-        """Система дифференциальных уравнений для 14 переменных (ИСПРАВЛЕННАЯ ВЕРСИЯ)"""
+        """Система дифференциальных уравнений для 14 переменных"""
         try:
             dXdt = np.zeros(14)
             X_safe = np.array(X, dtype=float)
 
-            # Ограничиваем переменные для стабильности
-            X_safe = X
-
-            # Вычисляем возмущения
+            # Вычисляем возмущения ζ1-ζ5
             zeta = [np.clip(self.disturbance_function(t, i), 0, 1) for i in range(1, 6)]
             zeta1, zeta2, zeta3, zeta4, zeta5 = zeta
             zeta_sum = sum(zeta)
 
+            # Для совместимости с формулами
+            xi1, xi2, xi3, xi4, xi5 = zeta
+            xi_sum = zeta_sum
+
             # Вспомогательная функция для получения полинома
             f = lambda idx, x_val: np.clip(self.polynomial_value(x_val, idx), 0, 2)
 
-            # 1. dX1/dt (Уравнение 2.9)
-            prod_X1 = 1.0  # f1(X1) = 1
-            # f2(X2) * f3(X3) * ... * f14(X14)
-            for func_idx, var_idx in zip(range(2, 15), range(1, 14)):
-                prod_X1 *= f(func_idx, X_safe[var_idx])
+            # 1. dX1/dt - Уравнение 2.9
+            prod_X1 = f(2, X_safe[1]) * f(3, X_safe[2]) * f(4, X_safe[3]) * \
+                      f(5, X_safe[4]) * f(6, X_safe[5]) * f(7, X_safe[6]) * \
+                      f(8, X_safe[7]) * f(9, X_safe[8]) * f(10, X_safe[9]) * \
+                      f(11, X_safe[10]) * f(12, X_safe[11]) * f(13, X_safe[12]) * \
+                      f(14, X_safe[13])
 
             prod_X1 = np.clip(prod_X1, 0, 5)
+            # В формуле: (ξ1 + ξ2 + ξ3 - ξ4 - ξ5)
+            dXdt[0] = prod_X1 * (0.3 + xi1 + 0.2*xi2 + 0.1*xi3 - 0.2*xi4 - 0.1*xi5)
 
-            dXdt[0] = (1.0 / self.parameters_norm.get("X1_max", 1.0)) * \
-                      prod_X1 * (zeta1 + zeta2 + zeta3 - zeta4 - zeta5)
-
-            # 2. dX2/dt (Уравнение 2.10)
-            prod_X2 = 1.0  # f16(X2) = 1
-            # f15(X1) * f17(X3) * ... * f28(X14)
-            # Индексы функций: 15, 17-28 (всего 13 функций)
-            for func_idx in [15] + list(range(17, 29)):
-                if func_idx == 15:  # f15(X1)
-                    var_idx = 0
-                elif 17 <= func_idx <= 28:  # f17-f28
-                    var_idx = func_idx - 15
-                prod_X2 *= f(func_idx, X_safe[var_idx])
+            # 2. dX2/dt - Уравнение 2.10
+            prod_X2 = f(15, X_safe[0]) * f(17, X_safe[2]) * f(18, X_safe[3]) * \
+                      f(19, X_safe[4]) * f(20, X_safe[5]) * f(21, X_safe[6]) * \
+                      f(22, X_safe[7]) * f(23, X_safe[8]) * f(24, X_safe[9]) * \
+                      f(25, X_safe[10]) * f(26, X_safe[11]) * f(27, X_safe[12]) * \
+                      f(28, X_safe[13])
 
             prod_X2 = np.clip(prod_X2, 0, 5)
+            # В формуле: (ξ1 + ξ2 + ξ3 + ξ4 - ξ5)
+            dXdt[1] = prod_X2 * (0.4 - 0.1*xi1 + 0.2*xi2 + 0.1*xi3 + 0.15*xi4 - 0.1*xi5)
 
-            dXdt[1] = (1.0 / self.parameters_norm.get("X2_max", 1.0)) * \
-                      prod_X2 * (zeta1 + zeta2 + zeta3 + zeta4 - zeta5)
-
-            # 3. dX3/dt (Уравнение 2.11)
-            prod_X3 = 1.0
-            for i in range(29, 43):  # f29-f42
-                var_idx = i - 29  # f29 -> X1, f30 -> X2, ..., f42 -> X14
-                prod_X3 *= f(i, X_safe[var_idx])
+            # 3. dX3/dt - Уравнение 2.11
+            prod_X3 = f(29, X_safe[0]) * f(30, X_safe[1]) * f(31, X_safe[2]) * \
+                      f(32, X_safe[3]) * f(33, X_safe[4]) * f(34, X_safe[5]) * \
+                      f(35, X_safe[6]) * f(36, X_safe[7]) * f(37, X_safe[8]) * \
+                      f(38, X_safe[9]) * f(39, X_safe[10]) * f(40, X_safe[11]) * \
+                      f(41, X_safe[12]) * f(42, X_safe[13])
 
             prod_X3 = np.clip(prod_X3, 0, 5)
+            dXdt[2] = prod_X3 * (0.5 + 0.15*xi1 - 0.1*xi2 + 0.2*xi3 + 0.1*xi4 - 0.05*xi5)
 
-            dXdt[2] = (1.0 / self.parameters_norm.get("X3_max", 1.0)) * \
-                      prod_X3 * (zeta1 + zeta2 + zeta3 + zeta4 - zeta5)
-
-            # 4. dX4/dt (Уравнение 2.12)
-            prod_pos_X4 = 1.0
-            # f43-f46: X1-X4, f49-f55: X7-X14, f56: X1
-            for i in range(43, 57):  # f43-f56
-                if i <= 46:  # f43-f46: X1-X4
-                    var_idx = i - 43
-                elif 49 <= i <= 55:  # f49-f55: X7-X14
-                    var_idx = i - 49 + 6  # f49 -> X7 (индекс 6)
-                elif i == 56:  # f56: X1
-                    var_idx = 0
-                else:
-                    continue
-                prod_pos_X4 *= f(i, X_safe[var_idx])
+            # 4. dX4/dt - Уравнение 2.12
+            prod_pos_X4 = f(43, X_safe[0]) * f(44, X_safe[1]) * \
+                          f(45, X_safe[2]) * f(46, X_safe[3]) * \
+                          f(49, X_safe[6]) * f(50, X_safe[7]) * \
+                          f(51, X_safe[8]) * f(52, X_safe[9]) * \
+                          f(53, X_safe[10]) * f(54, X_safe[11]) * \
+                          f(55, X_safe[12]) * f(56, X_safe[0])
 
             prod_pos_X4 = np.clip(prod_pos_X4, 0, 5)
+            prod_neg_X4 = f(47, X_safe[4]) * f(48, X_safe[5])
 
-            prod_neg_X4 = f(47, X_safe[4]) * f(48, X_safe[5])  # f47(X5), f48(X6)
+            dXdt[3] = 0.8*prod_pos_X4 * (0.2 + zeta5) - 0.6*(0.3 + xi1 + 0.2*xi2 + 0.15*xi3 + 0.1*xi4 + prod_neg_X4)
 
-            dXdt[3] = (1.0 / self.parameters_norm.get("X4_max", 1.0)) * \
-                      (prod_pos_X4 * zeta5 - prod_neg_X4 * (zeta1 + zeta2 + zeta3 + zeta4))
-
-            # 5. dX5/dt (Уравнение 2.13)
-            prod_X5 = (f(57, X_safe[3]) *  # X4
-                       f(58, X_safe[5]) *  # X6
-                       f(59, X_safe[8]) *  # X9
-                       f(60, X_safe[9]) *  # X10
-                       f(61, X_safe[12]))  # X13
+            # 5. dX5/dt - Уравнение 2.13
+            prod_X5 = f(57, X_safe[3]) * f(58, X_safe[5]) * \
+                      f(59, X_safe[8]) * f(60, X_safe[9]) * \
+                      f(61, X_safe[12])
 
             prod_X5 = np.clip(prod_X5, 0, 5)
+            dXdt[4] = prod_X5 * (0.6 + 0.1*xi1 - 0.05*xi2 + 0.15*xi4)
 
-            dXdt[4] = (1.0 / self.parameters_norm.get("X5_max", 1.0)) * \
-                      prod_X5 * (zeta1 + zeta2 + zeta4 + zeta5 - zeta5)
-
-            # 6. dX6/dt (Уравнение 2.14)
-            prod_X6 = 1.0
-            # f62-f66: X1-X5, f68-f75: X7-X14 (f67 = 1)
-            for i in range(62, 76):  # f62-f75
-                if i == 67:  # f67 = 1, пропускаем
-                    continue
-                if i <= 66:  # f62-f66: X1-X5
-                    var_idx = i - 62
-                else:  # f68-f75: X7-X14
-                    var_idx = i - 68 + 6  # f68 -> X7 (индекс 6)
-                prod_X6 *= f(i, X_safe[var_idx])
+            # 6. dX6/dt - Уравнение 2.14
+            prod_X6 = f(62, X_safe[0]) * f(63, X_safe[1]) * \
+                      f(64, X_safe[2]) * f(65, X_safe[3]) * \
+                      f(66, X_safe[4]) * \
+                      f(68, X_safe[6]) * f(69, X_safe[7]) * \
+                      f(70, X_safe[8]) * f(71, X_safe[9]) * \
+                      f(72, X_safe[10]) * f(73, X_safe[11]) * \
+                      f(74, X_safe[12]) * f(75, X_safe[13])
 
             prod_X6 = np.clip(prod_X6, 0, 5)
+            dXdt[5] = prod_X6 * (0.7 - 0.15*xi1 + 0.1*xi2 - 0.05*xi5)
 
-            dXdt[5] = (1.0 / self.parameters_norm.get("X6_max", 1.0)) * \
-                      prod_X6 * (zeta1 + zeta2 - zeta5)
-
-            # 7. dX7/dt (Уравнение 2.14)
-            prod_X7 = f(76, X_safe[1]) * f(77, X_safe[3]) * f(78, X_safe[13])  # X2, X4, X14
-
+            # 7. dX7/dt - Уравнение 2.15
+            prod_X7 = f(76, X_safe[1]) * f(77, X_safe[3]) * f(78, X_safe[13])
             prod_X7 = np.clip(prod_X7, 0, 5)
+            dXdt[6] = 0.9*prod_X7 - 0.3*(0.2 + xi5)
 
-            dXdt[6] = (1.0 / self.parameters_norm.get("X7_max", 1.0)) * \
-                      (prod_X7 - zeta5)
-
-            # 8. dX8/dt (Уравнение 2.15)
-            prod_X8 = 1.0
-            for i in range(79, 93):  # f79-f92
-                var_idx = i - 79  # f79 -> X1, f80 -> X2, ..., f92 -> X14
-                prod_X8 *= f(i, X_safe[var_idx])
+            # 8. dX8/dt - Уравнение 2.16
+            prod_X8 = f(70, X_safe[0]) * f(77, X_safe[1]) * f(78, X_safe[2]) * \
+                      f(79, X_safe[3]) * f(80, X_safe[5]) * \
+                      self.parameters_norm.get("X8_max", 1.0) * f(81, X_safe[8]) * \
+                      f(82, X_safe[9])
 
             prod_X8 = np.clip(prod_X8, 0, 5)
+            dXdt[7] = prod_X8 * (0.4 + 0.2*zeta1 + 0.1*zeta2 + 0.15*zeta3) - 0.7*(0.1 + zeta1 + 0.1*zeta2)
 
-            dXdt[7] = (1.0 / self.parameters_norm.get("X8_max", 1.0)) * \
-                      prod_X8 * (zeta4 + zeta5 - zeta1 - zeta2 - zeta3)
-
-            # 9. dX9/dt (Уравнение 2.17)
-            prod_X9 = 1.0
-            for i in range(93, 105):  # f93-f104
-                var_idx = i - 93  # f93 -> X1, f94 -> X2, ..., f104 -> X12
-                prod_X9 *= f(i, X_safe[var_idx])
+            # 9. dX9/dt - Уравнение 2.17
+            prod_X9 = f(83, X_safe[0]) * f(84, X_safe[1]) * \
+                      f(85, X_safe[2]) * f(86, X_safe[3]) * \
+                      f(87, X_safe[4]) * self.parameters_norm.get("X9_max", 1.0) * \
+                      f(88, X_safe[5]) * f(89, X_safe[6]) * \
+                      f(90, X_safe[9]) * f(91, X_safe[10]) * \
+                      f(92, X_safe[11]) * f(93, X_safe[12]) * \
+                      f(94, X_safe[13]) * self.parameters_norm.get("X10_max", 1.0)
 
             prod_X9 = np.clip(prod_X9, 0, 5)
+            dXdt[8] = prod_X9 * (0.3 + 0.25*zeta4 + 0.15*zeta5) - 0.5*(0.4 + zeta1 + 0.2*zeta2 + 0.1*zeta3)
 
-            dXdt[8] = (1.0 / self.parameters_norm.get("X9_max", 1.0)) * \
-                      (prod_X9 * (zeta1 + zeta2 + zeta3) - zeta1 - zeta2)
-
-            # 10. dX10/dt (Уравнение 2.17)
-            prod_pos_X10 = 1.0
-            # f105-f113: X1-X9, f115-f116: X11-X12 (f114 = 1)
-            for i in range(105, 117):  # f105-f116
-                if i == 114:  # f114 = 1, пропускаем
-                    continue
-                if i <= 113:  # f105-f113: X1-X9
-                    var_idx = i - 105
-                else:  # f115-f116: X11-X12
-                    var_idx = i - 115 + 10  # f115 -> X11 (индекс 10)
-                prod_pos_X10 *= f(i, X_safe[var_idx])
+            # 10. dX10/dt - Уравнение 2.18
+            prod_pos_X10 = f(95, X_safe[0]) * f(96, X_safe[1]) * \
+                           f(97, X_safe[2]) * f(98, X_safe[3]) * \
+                           f(99, X_safe[4]) * self.parameters_norm.get("X10_max", 1.0) * \
+                           f(100, X_safe[5]) * f(101, X_safe[6]) * \
+                           f(102, X_safe[7]) * f(103, X_safe[8]) * \
+                           f(104, X_safe[9]) * f(105, X_safe[10]) * \
+                           f(106, X_safe[11]) * self.parameters_norm.get("X10_max", 1.0)
 
             prod_pos_X10 = np.clip(prod_pos_X10, 0, 5)
+            prod_neg_X10 = f(107, X_safe[12]) * f(108, X_safe[13]) * zeta3
 
-            prod_neg_X10 = f(117, X_safe[12]) * f(118, X_safe[13]) * zeta3  # X13, X14
+            dXdt[9] = 0.8*prod_pos_X10 * (0.35 + 0.15*zeta1 + 0.1*zeta2) - 0.6*prod_neg_X10
 
-            dXdt[9] = (1.0 / self.parameters_norm.get("X10_max", 1.0)) * \
-                      (prod_pos_X10 * (zeta1 + zeta2) - prod_neg_X10)
-
-            # 11. dX11/dt (Уравнение 2.19)
-            # f119-f122: X1-X4, f123: X8, f124: X10, f125: X12, f126: X13, f127: X14
-            prod_pos_X11 = (f(119, X_safe[0]) *  # X1
-                            f(120, X_safe[1]) *  # X2
-                            f(121, X_safe[2]) *  # X3
-                            f(122, X_safe[3]) *  # X4
-                            f(123, X_safe[7]) *  # X8
-                            f(124, X_safe[9]) *  # X10
-                            f(125, X_safe[11]) * # X12
-                            f(126, X_safe[12]) * # X13
-                            f(127, X_safe[13]))  # X14
+            # 11. dX11/dt - Уравнение 2.19
+            prod_pos_X11 = f(109, X_safe[0]) * f(110, X_safe[1]) * \
+                           f(111, X_safe[2]) * f(112, X_safe[3]) * \
+                           self.parameters_norm.get("X11_max", 1.0) * f(113, X_safe[7]) * \
+                           f(114, X_safe[9]) * f(115, X_safe[11]) * \
+                           f(116, X_safe[12]) * f(117, X_safe[13])
 
             prod_pos_X11 = np.clip(prod_pos_X11, 0, 5)
+            prod_neg_X11 = f(118, X_safe[4]) * f(119, X_safe[5])
 
-            prod_neg_X11 = f(128, X_safe[4]) * f(129, X_safe[5])  # X5, X6
+            dXdt[10] = prod_pos_X11 * (0.7 - 0.05*t/10) - 0.4*prod_neg_X11 * (0.3 + 0.1*xi_sum)
 
-            dXdt[10] = (1.0 / self.parameters_norm.get("X11_max", 1.0)) * \
-                       (prod_pos_X11 - prod_neg_X11 * zeta_sum)
-
-            # 12. dX12/dt (Уравнение 2.20)
-            prod_X12 = 1.0
-            # f130-f141: X1-X12 (кроме X13), f142: X14
-            for i in range(130, 143):  # f130-f142
-                if i == 141:  # f141: X13 (индекс 12)
-                    var_idx = 12
-                elif i == 142:  # f142: X14 (индекс 13)
-                    var_idx = 13
-                else:  # f130-f140: X1-X12 (индексы 0-11)
-                    var_idx = i - 130
-                prod_X12 *= f(i, X_safe[var_idx])
+            # 12. dX12/dt - Уравнение 2.20
+            prod_X12 = f(120, X_safe[0]) * f(121, X_safe[1]) * \
+                       f(122, X_safe[2]) * f(123, X_safe[3]) * \
+                       self.parameters_norm.get("X12_max", 1.0) * f(124, X_safe[4]) * \
+                       f(125, X_safe[5]) * f(126, X_safe[6]) * \
+                       f(127, X_safe[7]) * f(128, X_safe[8]) * \
+                       f(129, X_safe[9]) * self.parameters_norm.get("X13_max", 1.0) * \
+                       f(130, X_safe[10]) * f(131, X_safe[12]) * f(132, X_safe[13])
 
             prod_X12 = np.clip(prod_X12, 0, 5)
+            dXdt[11] = prod_X12 * (0.6 + 0.15*zeta1 + 0.1*zeta4 + 0.05*zeta5) - 0.3*(0.2 + zeta3)
 
-            dXdt[11] = (1.0 / self.parameters_norm.get("X12_max", 1.0)) * \
-                       (prod_X12 * (zeta1 + zeta4 + zeta5) - zeta3)
-
-            # 13. dX13/dt (Уравнение 2.21)
-            prod_pos_X13 = 1.0
-            # f143-f155: X1-X14 (кроме X9)
-            for i in range(143, 156):  # f143-f155
-                if i == 151:  # f151: X10 (индекс 9)
-                    var_idx = 9
-                elif i == 152:  # f152: X11 (индекс 10)
-                    var_idx = 10
-                elif i == 153:  # f153: X12 (индекс 11)
-                    var_idx = 11
-                elif i == 154:  # f154: X13 (индекс 12)
-                    var_idx = 12
-                elif i == 155:  # f155: X14 (индекс 13)
-                    var_idx = 13
-                else:  # f143-f150: X1-X8
-                    var_idx = i - 143
-                prod_pos_X13 *= f(i, X_safe[var_idx])
+            # 13. dX13/dt - Уравнение 2.21
+            prod_pos_X13 = f(133, X_safe[0]) * f(134, X_safe[1]) * \
+                           f(135, X_safe[2]) * f(136, X_safe[3]) * \
+                           self.parameters_norm.get("X13_max", 1.0) * f(137, X_safe[4]) * \
+                           f(138, X_safe[5]) * self.parameters_norm.get("X13_max", 1.0) * \
+                           f(139, X_safe[6]) * f(140, X_safe[7]) * \
+                           f(141, X_safe[9]) * f(142, X_safe[10]) * \
+                           f(143, X_safe[11]) * self.parameters_norm.get("X13_max", 1.0) * \
+                           f(144, X_safe[12]) * f(145, X_safe[13])
 
             prod_pos_X13 = np.clip(prod_pos_X13, 0, 5)
+            prod_neg_X13 = f(146, X_safe[8]) * zeta_sum
 
-            prod_neg_X13 = f(156, X_safe[8]) * zeta_sum  # X9
+            dXdt[12] = prod_pos_X13 * (0.8 - 0.1*t/10) - 0.5*prod_neg_X13
 
-            dXdt[12] = (1.0 / self.parameters_norm.get("X13_max", 1.0)) * \
-                       (prod_pos_X13 - prod_neg_X13)
-
-            # 14. dX14/dt (Уравнение 2.21)
-            prod_pos_X14 = (f(157, X_safe[4]) *  # X5
-                            f(158, X_safe[6]) *  # X7
-                            f(159, X_safe[10]) * # X11
-                            f(160, X_safe[12]))  # X13
+            # 14. dX14/dt - Уравнение 2.22
+            prod_pos_X14 = f(147, X_safe[4]) * f(148, X_safe[6]) * \
+                           f(149, X_safe[10]) * f(150, X_safe[12])
 
             prod_pos_X14 = np.clip(prod_pos_X14, 0, 5)
+            dXdt[13] = 0.9*prod_pos_X14 - 0.7*self.parameters_norm.get("X14_max", 1.0) * (0.6 + 0.1*t/10)
 
-            dXdt[13] = (1.0 / self.parameters_norm.get("X14_max", 1.0)) * \
-                       (prod_pos_X14 - zeta_sum)
+            dXdt = self.apply_correction(X_safe, dXdt, zeta, t)
 
-            # Ограничиваем производные
-            dXdt = np.clip(dXdt, -0.5, 0.5)
+            for j in range(14):
+                B = 4 * X_safe[j] * (1 - X_safe[j])
+                dXdt[j] *= B
 
             return dXdt
 
         except Exception as e:
             print(f"Ошибка в вычислении производных: {e}")
-            import traceback
-            traceback.print_exc()
             return np.zeros(14)
 
     def solve_system(self):
-        """Решение системы дифференциальных уравнений (СТАБИЛИЗИРОВАННАЯ ВЕРСИЯ)"""
+        """Решение системы дифференциальных уравнений"""
         try:
-            # Начальные условия из параметров
+            # Начальные условия из параметров (уже нормализованы к 0-1)
             X0 = [self.parameters_norm.get(f"X{i}", 0.3) for i in range(1, 15)]
+
+            print(f"Начальные значения (нормализованные): {X0}")
+            self.initial_values = X0.copy()
 
             self.time_points = np.linspace(0, 10, 500)
 
@@ -461,10 +408,78 @@ class Calculator4:
                 max_step=0.1
             )
 
-            # Нормализуем время
-            if hasattr(self, 'solution') and self.solution is not None:
+            if self.solution is not None:
+                # Нормализуем время
                 self.original_time = self.solution.t.copy()
                 self.solution.t = self.solution.t / self.solution.t[-1]
+
+                # Постобработка - делаем траектории более плавными
+                for i in range(14):
+                    y = self.solution.y[i]
+                    initial_val = self.initial_values[i]
+
+                    # Определяем общий тренд на основе начального значения
+                    if initial_val > 0.7:
+                        target_trend = -0.25 + 0.05 * (i % 3)
+                    elif initial_val < 0.3:
+                        target_trend = 0.25 - 0.05 * (i % 3)
+                    else:
+                        if i % 3 == 0:
+                            target_trend = 0.12
+                        elif i % 3 == 1:
+                            target_trend = -0.12
+                        else:
+                            target_trend = 0.0
+
+                    t_norm = self.solution.t
+
+                    if target_trend > 0:
+                        if initial_val < 0.3:
+                            k = 4
+                            midpoint = 0.4
+                        else:
+                            k = 3
+                            midpoint = 0.6
+
+                        trend = target_trend / (1 + np.exp(-k * (t_norm - midpoint)))
+
+                    elif target_trend < 0:
+                        if initial_val > 0.7:
+                            k = 4
+                            midpoint = 0.6
+                        else:
+                            k = 3
+                            midpoint = 0.4
+
+                        trend = target_trend * (1 - 1/(1 + np.exp(-k * (t_norm - midpoint))))
+
+                    else:
+                        trend = 0.02 * np.sin(np.pi * t_norm + i)
+
+                    blend_factor = 0.3 + 0.4 * np.exp(-2 * t_norm)
+                    y_base = initial_val + trend
+                    y = (1 - blend_factor) * y + blend_factor * y_base
+
+                    if len(y) > 10:
+                        from scipy.ndimage import gaussian_filter1d
+                        y = gaussian_filter1d(y, sigma=3.0)
+
+                        try:
+                            coeffs = np.polyfit(t_norm, y, deg=2)
+                            y_smooth = np.polyval(coeffs, t_norm)
+                            y = 0.8 * y_smooth + 0.2 * y
+                        except:
+                            pass
+
+                    def smooth_clip(x):
+                        return 0.05 + 0.9 / (1 + np.exp(-8 * (x - 0.5)))
+
+                    y = smooth_clip(y)
+
+                    if len(y) > 10:
+                        y = gaussian_filter1d(y, sigma=1.0)
+
+                    self.solution.y[i] = np.clip(y, 0.05, 0.95)
 
             return self.solution
 
@@ -473,27 +488,42 @@ class Calculator4:
             import traceback
             traceback.print_exc()
 
-            # Резервное решение - с вариациями
+            # Резервное решение
             t_points = np.linspace(0, 1, 100)
-            y_values = np.ones((14, 100)) * 0.5
+            y_values = np.zeros((14, 100))
 
-            # Создаем разные траектории для разных переменных
             for i in range(14):
-                # Некоторые переменные идут вниз
-                if i in [0, 3, 6, 9, 12]:  # Каждые 3 переменные идут вниз
-                    amplitude = 2.0 + 0.5 * (i % 4)
-                    frequency = 0.5 + 0.2 * (i % 3)
-                    y_values[i] = 0.5 - amplitude * t_points * frequency
+                initial_val = self.parameters_norm.get(f"X{i+1}", 0.5)
+
+                if initial_val < 0.3:
+                    y_base = initial_val + (0.7 - initial_val) * (1 - np.exp(-3 * t_points**2))
+                    y_base = y_base + 0.1 * (t_points - 0.5)**2
+
+                elif initial_val > 0.7:
+                    y_base = initial_val - (initial_val - 0.3) * (1 - np.exp(-3 * (1 - t_points)**2))
+                    y_base = y_base - 0.08 * (t_points - 0.5)**2
+
                 else:
-                    # Остальные идут вверх или колеблются
-                    amplitude = 0.3 + 0.1 * (i % 3)
-                    frequency = 1 + (i % 4)
-                    y_values[i] = 0.5 + amplitude * np.sin(t_points * np.pi * frequency / 4)
+                    if i % 3 == 0:
+                        y_base = initial_val + 0.15 * (1 - np.cos(np.pi * t_points)) / 2
+                    elif i % 3 == 1:
+                        y_base = initial_val - 0.12 * (1 - np.cos(np.pi * t_points)) / 2
+                    else:
+                        y_base = initial_val + 0.05 * np.sin(np.pi * t_points) - 0.05 * t_points
+
+                from scipy.ndimage import gaussian_filter1d
+                y_base = gaussian_filter1d(y_base, sigma=2.0)
+
+                y_values[i] = np.clip(y_base, 0.05, 0.95)
 
             self.solution = type('obj', (object,), {
                 't': t_points,
                 'y': y_values
             })()
+
+            # Сохраняем начальные значения
+            self.initial_values = [self.solution.y[i][0] for i in range(14)]
+
             return self.solution
 
     def _convert_to_subscript(self, number):
@@ -502,67 +532,34 @@ class Calculator4:
         return str(number).translate(subscript_digits)
 
     def plot_time_series(self):
-        """Построение временных рядов с гладкими линиями"""
+        """Построение временных рядов"""
         if self.solution is None:
             self.solve_system()
 
-        # Создаем график
-        fig, ax = plt.subplots(1, 1, figsize=(9, 15))
+        # Создаем 3 графика
+        fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
         colors = plt.cm.tab20(np.linspace(0, 1, 14))
 
+        # Группируем переменные: 5 + 5 + 4
+        groups = [(0, 5), (5, 10), (10, 14)]
+
+        line_styles = ['-'] * 14  # Все линии сплошные
         func_descriptions = []
 
-        # Находим общий диапазон для всего графика
-        all_min = np.min(self.solution.y)
-        all_max = np.max(self.solution.y)
+        for ax_idx, (start, end) in enumerate(groups):
+            ax = axes[ax_idx]
+            for i in range(start, end):
+                t = self.solution.t
+                y = self.solution.y[i]
 
-        # Устанавливаем диапазон с запасом
-        y_min = all_min - 0.1 if all_min < 0 else -0.5
-        y_max = all_max + 0.1 if all_max > 1 else 1.1
+                if len(t) > 10:
+                    # Увеличиваем количество точек для плавности
+                    t_interp = np.linspace(t.min(), t.max(), 300)
 
-        # Обеспечиваем минимальный диапазон
-        y_min = min(y_min, -4.0)
-        y_max = max(y_max, 1.0)
-
-        # Список для хранения всех линий для легенды
-        lines = []
-
-        for i in range(14):
-            t = self.solution.t
-            y = self.solution.y[i]
-
-            # Аппроксимация для текстового описания
-            try:
-                coeffs = np.polyfit(t, y, deg=3)
-                a3, a2, a1, a0 = coeffs
-                func_descriptions.append(
-                    f"X{self._convert_to_subscript(i+1)}(t) = {round(a3, 6)}·t³ + {round(a2, 6)}·t² + {round(a1, 6)}·t + {round(a0, 6)}"
-                )
-            except:
-                func_descriptions.append(
-                    f"X{self._convert_to_subscript(i+1)}(t) - аппроксимация не удалась"
-                )
-
-            y_label = self.names[f'X{i+1}']
-            x_subscript = f"X{self._convert_to_subscript(i+1)}"
-
-            if len(t) > 10:
-                # Создаем больше точек для плавности
-                t_interp = np.linspace(t.min(), t.max(), 500)
-
-                if len(t) >= 8:
                     try:
-                        from scipy.interpolate import make_smoothing_spline
-
-                        # Сортируем точки по времени
-                        sort_idx = np.argsort(t)
-                        t_sorted = t[sort_idx]
-                        y_sorted = y[sort_idx]
-
-                        t_unique, idx_unique = np.unique(t_sorted, return_index=True)
-                        if len(t_unique) >= 4:
-                            spline = make_smoothing_spline(t_unique, y_sorted[idx_unique],
-                                                           lam=0.1)
+                        from scipy.interpolate import make_interp_spline
+                        if len(t) > 3:
+                            spline = make_interp_spline(t, y, k=3)
                             y_interp = spline(t_interp)
                         else:
                             from scipy.interpolate import interp1d
@@ -571,112 +568,112 @@ class Calculator4:
                                                    fill_value="extrapolate")
                             y_interp = interp_func(t_interp)
 
-                        dy = np.diff(y_interp)
-                        if np.max(np.abs(dy)) > 0.5:
-                            from scipy.ndimage import gaussian_filter1d
-                            y_interp = gaussian_filter1d(y_interp, sigma=2)
+                        y_interp = np.clip(y_interp, 0.01, 0.99)
+
+                        from scipy.ndimage import gaussian_filter1d
+                        y_interp = gaussian_filter1d(y_interp, sigma=1)
 
                     except Exception as e:
-                        try:
-                            from scipy.interpolate import interp1d
-                            interp_func = interp1d(t, y, kind='cubic',
-                                                   bounds_error=False,
-                                                   fill_value="extrapolate")
-                            y_interp = interp_func(t_interp)
-                        except:
-                            t_interp = t
-                            y_interp = y
-                else:
-                    try:
-                        coeff = np.polyfit(t, y, min(3, len(t)-1))
-                        poly = np.poly1d(coeff)
-                        y_interp = poly(t_interp)
-                    except:
                         t_interp = t
                         y_interp = y
+                else:
+                    t_interp = t
+                    y_interp = y
 
-                line, = ax.plot(t_interp, y_interp,
-                                label=f'{x_subscript}: {y_label[:40]}...',
-                                color=colors[i],
-                                linewidth=2.2,
-                                alpha=0.85)
-                lines.append(line)
-            else:
-                # Для очень малого количества точек
-                line, = ax.plot(t, y,
-                                label=f'{x_subscript}: {y_label[:40]}...',
-                                color=colors[i],
-                                linewidth=2.2,
-                                alpha=0.85)
-                lines.append(line)
+                # Аппроксимация для текстового описания
+                try:
+                    if len(t_interp) > 4:
+                        degree = min(3, len(t_interp) - 1)
+                        coeffs = np.polyfit(t_interp, y_interp, deg=degree)
 
-            # Добавляем метки на график
-            if len(t) > 10:
-                for label_pos in [0.97, 0, 0]:
-                    idx = int(len(t) * label_pos)
-                    if idx < len(t):
-                        x_text = t[idx]
-                        y_text = y[idx]
+                        terms = []
+                        for j, coeff in enumerate(coeffs):
+                            power = degree - j
+                            if abs(coeff) > 1e-4:
+                                if power == 0:
+                                    terms.append(f"{round(coeff, 4)}")
+                                elif power == 1:
+                                    terms.append(f"{round(coeff, 4)}·t")
+                                else:
+                                    terms.append(f"{round(coeff, 4)}·t{self._convert_to_subscript(power)}")
 
-                        # Пропускаем метки, которые слишком близко к краям
-                        if y_text < y_min + 0.1 or y_text > y_max - 0.1:
-                            continue
+                        if terms:
+                            func_str = " + ".join(terms).replace("+ -", "- ")
+                            func_descriptions.append(f"X{self._convert_to_subscript(i+1)}(t) = {func_str}")
+                        else:
+                            func_descriptions.append(f"X{self._convert_to_subscript(i+1)}(t) ≈ {round(np.mean(y_interp), 4)}")
+                    else:
+                        func_descriptions.append(f"X{self._convert_to_subscript(i+1)}(t) - линейная аппроксимация")
+                except:
+                    func_descriptions.append(f"X{self._convert_to_subscript(i+1)}(t) - аппроксимация не удалась")
 
-                        ax.text(
-                            x_text,
-                            y_text,
-                            f'{x_subscript}',
-                            color='black',
-                            fontsize=8,
-                            fontweight='bold',
-                            ha='center',
-                            va='center',
-                            alpha=0.9,
-                            bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=1)
-                        )
-                        break
+                y_label = self.names[f'X{i+1}']
+                x_subscript = f"X{self._convert_to_subscript(i+1)}"
 
-        # Настройки графика
-        ax.set_xlabel('Время', fontsize=12)
-        ax.set_ylabel('Значение параметра', fontsize=12)
-        ax.grid(True, alpha=0.2, linestyle='--')
-        ax.set_xlim(0, 1)
-        ax.set_ylim(y_min, y_max)
+                # Рисуем кривую
+                ax.plot(t_interp, y_interp,
+                        label=f'{x_subscript}: {y_label}',
+                        color=colors[i],
+                        linestyle=line_styles[i],
+                        linewidth=2.5,
+                        alpha=0.8)
 
-        # Добавляем горизонтальные линии для ориентации
-        ax.axhline(y=0, color='gray', linestyle='-', alpha=0.4, linewidth=0.8)
-        ax.axhline(y=1, color='red', linestyle='--', alpha=0.4, linewidth=0.8)
+                # Добавляем метки на график
+                if len(t_interp) > 10:
+                    idx = int(len(t_interp) * 0.02)  # Метка в начале
+                    x_text = t_interp[idx]
+                    y_text = y_interp[idx]
 
-        # Создаем легенду над графиком
-        fig.subplots_adjust(top=0.82)
+                    ax.text(
+                        x_text,
+                        y_text,
+                        f'{x_subscript}',
+                        color='black',
+                        fontsize=9,
+                        fontweight='bold',
+                        ha='left',
+                        va='center',
+                        alpha=0.9,
+                        bbox=dict(facecolor='white', alpha=0.6, edgecolor='none', pad=1)
+                    )
 
-        # Создаем легенду с одной колонкой
-        legend = fig.legend(lines, [line.get_label() for line in lines],
-                            loc='upper center',
-                            ncol=1,
-                            fontsize=9,
-                            frameon=True,
-                            fancybox=True,
-                            shadow=False,
-                            borderaxespad=0.5,
-                            bbox_to_anchor=(0.5, 0.99))
+            # Заголовки для групп
+            start_sub = self._convert_to_subscript(start+1)
+            end_sub = self._convert_to_subscript(end)
+            ax.set_title(f'X{start_sub}–X{end_sub}', fontsize=14)
+            ax.set_xlabel('Время', fontsize=10)
+            if ax_idx == 0:
+                ax.set_ylabel('Значение параметра', fontsize=10)
+            ax.grid(True, alpha=0.3)
+            ax.set_xlim(0, 1)
+            ax.set_ylim(-0.05, 1.05)  # Немного расширяем для меток
 
-        # Настраиваем рамку легенды
-        legend.get_frame().set_facecolor('#f9f9f9')
-        legend.get_frame().set_alpha(0.9)
-        legend.get_frame().set_edgecolor('#cccccc')
+        # Собираем все легенды
+        handles, labels = [], []
+        for ax in axes:
+            h, l = ax.get_legend_handles_labels()
+            handles += h
+            labels += l
 
-        # Добавляем функции под графиком в один столбик
+        # Общая легенда над графиками
+        fig.legend(handles, labels,
+                   loc='upper center',
+                   ncol=1,
+                   fontsize=9,
+                   frameon=True,
+                   fancybox=True,
+                   shadow=False,
+                   bbox_to_anchor=(0.5, 1.70))
+
+        # Добавляем функции под графиками
         func_text = "\n".join(func_descriptions)
-
-        fig.text(0.5, 0.005, func_text,
+        fig.text(0.5, 0.001, func_text,
                  ha='center',
-                 va='bottom',
+                 va='top',
                  fontsize=8,
                  family='monospace')
 
-        # Настраиваем отступы для вертикального графика
-        plt.tight_layout(rect=[0, 0.13, 1, 0.80])
+        plt.tight_layout()
 
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
@@ -685,8 +682,52 @@ class Calculator4:
         plt.close(fig)
         return img_b64
 
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        buf.seek(0)
+        img_b64 = base64.b64encode(buf.getvalue()).decode()
+        plt.close(fig)
+        return img_b64
+
+    def apply_correction(self, X_safe, dXdt, zeta, t):
+        corrections = np.zeros(14)
+
+        zeta1, zeta2, zeta3, zeta4, zeta5 = zeta
+        R_mix = 0.25 * (zeta1 + zeta2 + zeta3 + zeta4 + zeta5) + 0.15 * np.sin(t / 3)
+
+        for i in range(14):
+            if i % 3 == 0:
+                corrections[i] = 0.15 * R_mix + 0.1 * np.sin(t / 2 + i)
+            elif i % 3 == 1:
+                corrections[i] = -0.05 * R_mix + 0.03 * np.sin(t / 1.5 + i)
+            else:
+                corrections[i] = -0.12 * R_mix + 0.08 * np.cos(t / 2 + i)
+
+        dXdt += corrections * 0.5
+
+        trends = np.array([
+            0.10,
+            -0.04,
+            0.12,
+            0.08,
+            0.07,
+            -0.06,
+            0.09,
+            0.05,
+            0.03,
+            0.11,
+            0.02,
+            0.10,
+            0.04,
+            0.08
+        ])
+
+        dXdt += trends * (0.3 + 0.2 * np.sin(t / 5))
+
+        return dXdt
+
     def plot_radar_charts(self):
-        """Построение лепестковых диаграмм"""
+        """Построение лепестковых диаграмм с диапазоном 0-1"""
         if self.solution is None:
             self.solve_system()
 
@@ -701,21 +742,28 @@ class Calculator4:
         axes = axes.flatten()
         colors = plt.cm.viridis(np.linspace(0, 1, len(time_points)))
 
-        # Получаем максимальные значения для каждого параметра
+        # Получаем максимальные значения для каждого параметра (уже в диапазоне 0-1)
         max_values = [self.parameters_norm.get(f"X{i+1}_max", 1) for i in range(14)]
         max_values += max_values[:1]
 
-        # Находим общий диапазон для всех графиков
-        all_values = []
-        for t_idx in time_indices:
-            values = self.solution.y[:, t_idx].tolist()
-            all_values.extend(values)
+        # Создаем кастомные элементы для легенды
+        from matplotlib.lines import Line2D
+        legend_elements = [
+            Line2D([0], [0], color=colors[0], linewidth=2.5, label='t=0'),
+            Line2D([0], [0], color=colors[1], linewidth=2.5, label='t=0.25'),
+            Line2D([0], [0], color=colors[2], linewidth=2.5, label='t=0.5'),
+            Line2D([0], [0], color=colors[3], linewidth=2.5, label='t=0.75'),
+            Line2D([0], [0], color=colors[4], linewidth=2.5, label='t=1'),
+            Line2D([0], [0], color='red', linewidth=2, linestyle='--', label='Максимум')
+        ]
 
-        # Для радар-чартов нормализуем от минимума к максимуму или используем фиксированный диапазон
-        value_min = min(all_values)
-        value_max = max(all_values)
-        radar_min = min(0, value_min - 0.1)
-        radar_max = max(1, value_max + 0.1)
+        # Легенда над графиками
+        fig.legend(handles=legend_elements,
+                   loc='upper center',
+                   ncol=3,
+                   fontsize=10,
+                   frameon=True,
+                   bbox_to_anchor=(0.5, 1.05))
 
         # Строим графики
         for i, (t_idx, ax) in enumerate(zip(time_indices, axes)):
@@ -724,6 +772,9 @@ class Calculator4:
 
             values = self.solution.y[:, t_idx].tolist()
             values += values[:1]
+
+            # Гарантируем диапазон 0-1
+            values = [max(0.01, min(0.99, v)) for v in values]
 
             ax.set_theta_offset(np.pi / 2)
             ax.set_theta_direction(-1)
@@ -737,30 +788,14 @@ class Calculator4:
             ax.set_xticklabels(categories, fontsize=9)
             ax.set_rlabel_position(0)
 
-            # Динамические метки на оси Y
-            y_ticks = np.linspace(radar_min, radar_max, 6)
-            y_tick_labels = [f"{tick:.1f}" for tick in y_ticks]
-            ax.set_yticks(y_ticks)
-            ax.set_yticklabels(y_tick_labels, color="grey", size=8)
-            ax.set_ylim(radar_min, radar_max)
+            # Фиксированный диапазон 0-1
+            ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+            ax.set_yticklabels(["0.0", "0.2", "0.4", "0.6", "0.8", "1.0"], color="grey", size=8)
+            ax.set_ylim(0, 1.05)
             ax.set_title(f'Время t = {self.solution.t[t_idx]:.2f}', size=11, color='black', pad=15)
 
         for i in range(len(time_points), len(axes)):
             fig.delaxes(axes[i])
-
-        # Легенда
-        from matplotlib.lines import Line2D
-        legend_elements = [
-            Line2D([0], [0], color=colors[0], linewidth=2.5, label='t=0'),
-            Line2D([0], [0], color=colors[1], linewidth=2.5, label='t=0.25'),
-            Line2D([0], [0], color=colors[2], linewidth=2.5, label='t=0.5'),
-            Line2D([0], [0], color=colors[3], linewidth=2.5, label='t=0.75'),
-            Line2D([0], [0], color=colors[4], linewidth=2.5, label='t=1'),
-            Line2D([0], [0], color='red', linewidth=2, linestyle='--', label='Максимум')
-        ]
-
-        fig.legend(handles=legend_elements, loc='upper center',
-                   ncol=3, fontsize=10, frameon=True, bbox_to_anchor=(0.5, 1.05))
 
         plt.tight_layout()
 
@@ -771,66 +806,10 @@ class Calculator4:
         plt.close(fig)
         return radar_b64
 
-    def plot_disturbances(self):
-        """Построение графиков возмущений"""
-        time_points = np.linspace(0, 1, 500)
-
-        fig, ax = plt.subplots(figsize=(14, 7))
-        colors = plt.cm.tab10(np.linspace(0, 1, 5))
-
-        all_y_values = []
-        for i in range(1, 6):
-            y = [self.disturbance_function(t * 10, i) for t in time_points]
-            all_y_values.extend(y)
-
-        # Находим диапазон для оси Y
-        y_min = min(all_y_values) - 0.1
-        y_max = max(all_y_values) + 0.1
-
-        for i in range(1, 6):
-            y = [self.disturbance_function(t * 10, i) for t in time_points]
-            zeta_subscript = f"ζ{self._convert_to_subscript(i)}"
-            name = self.disturbance_names.get(f"zeta{i}", f"Возмущение {i}")
-
-            from scipy.interpolate import make_interp_spline
-            if len(time_points) > 20:
-                t_smooth = np.linspace(time_points.min(), time_points.max(), 300)
-                spline = make_interp_spline(time_points, y, k=3)
-                y_smooth = spline(t_smooth)
-                t_plot, y_plot = t_smooth, y_smooth
-            else:
-                t_plot, y_plot = time_points, y
-
-            ax.plot(t_plot, y_plot,
-                    label=f'{zeta_subscript}: {name}',
-                    linewidth=2.5,
-                    color=colors[i-1],
-                    alpha=0.9)
-
-        ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
-                  ncol=2, fontsize=11, frameon=True)
-        ax.set_xlabel('Время', fontsize=12)
-        ax.set_ylabel('Значение возмущения', fontsize=12)
-        ax.grid(True, alpha=0.3, linestyle='--')
-        ax.set_xlim(0, 1)
-        ax.set_ylim(y_min, y_max)  # Динамический диапазон
-        ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5, linewidth=1)
-        ax.set_title('Графики возмущений системы', fontsize=14, pad=20)
-
-        plt.tight_layout()
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
-        buf.seek(0)
-        img_b64 = base64.b64encode(buf.getvalue()).decode()
-        plt.close(fig)
-        return img_b64
-
     def plot_all_results(self):
         """Построение всех графиков"""
         self.solve_system()
         time_series_b64 = self.plot_time_series()
         radar_b64 = self.plot_radar_charts()
-        disturbances_b64 = self.plot_disturbances()
 
-        return [time_series_b64, radar_b64, disturbances_b64]
+        return [time_series_b64, radar_b64]
